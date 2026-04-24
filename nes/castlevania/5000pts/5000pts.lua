@@ -47,10 +47,14 @@ local function bcd_byte(b)
 end
 
 local function read_score()
+    -- Three BCD bytes, six digits total. Positional multipliers below
+    -- already reconstruct the full displayed score — DO NOT multiply the
+    -- sum by 10 on top of that (earlier mistake: made the challenge
+    -- trigger at displayed 500 instead of 5000).
     local hi = bcd_byte(read_u8(ADDR.SCORE))       -- 100000s + 10000s
     local mi = bcd_byte(read_u8(ADDR.SCORE + 1))   -- 1000s + 100s
-    local lo = bcd_byte(read_u8(ADDR.SCORE + 2))   -- 10s + tenths (tenths is always 0)
-    return (hi * 10000 + mi * 100 + lo) * 10
+    local lo = bcd_byte(read_u8(ADDR.SCORE + 2))   -- 10s + ones (ones is always 0 in Castlevania)
+    return hi * 10000 + mi * 100 + lo
 end
 
 local function use_system_bus_domain()
