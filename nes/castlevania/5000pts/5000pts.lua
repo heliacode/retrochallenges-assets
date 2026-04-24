@@ -1,672 +1,188 @@
--- Castlevania 5000 Points Challenge Script
--- Loads savestate and monitors score until reaching 5000 points
+-- Castlevania 5000 Points Challenge
+-- Load a savestate that drops the player in a known starting position and
+-- measure how fast they can score 5000 points.
 
------------------------
--- ROOT + path helpers
------------------------
-local function script_dir()
-  local s = debug.getinfo(1, "S").source
-  local p = (s:sub(1,1)=="@" and s:sub(2) or s)
-  return (p:match("^(.*[\\/])") or "")
-end
--- Script is in: %roamingdata%\nes\castlevania\5000pts\5000pts.lua
--- Need to go up 3 levels to reach root: %roamingdata%
-local ROOT = script_dir() .. "..\\..\\..\\"
+local RC = _G.RC or error(
+    "This challenge requires the RetroChallenges launcher. Start it from the\n" ..
+    "app rather than loading this .lua directly in BizHawk."
+)
 
-local PATH = {
-  roms   = ROOT .. "roms\\",
-  images = ROOT .. "assets\\",        -- %roamingdata%\assets\
-  audio  = ROOT .. "assets\\",        -- %roamingdata%\assets\
-  utils  = ROOT .. "utils\\",         -- %roamingdata%\utils\
-  savestates = "savestates\\"         -- Relative to script location
-}
+local SoundPlayer = require("SoundPlayer")
 
--- Memory addresses
+-- ---------------------------------------------------------------------------
+-- Memory map (US NES release)
+-- ---------------------------------------------------------------------------
 local ADDR = {
-    SYSTEM_STATE = 0x0018,
+    -- Writing 1 freezes the game's own state machine while BizHawk keeps
+    -- advancing emulation frames. That's how the 3-2-1-GO countdown draws
+    -- without the player sprite actually moving.
     USER_PAUSED = 0x0022,
-    SCORE = 0x07FC, -- Score address (3 bytes)
-    HEALTH_REAL = 0x0045,
-    SIMON_STATE = 0x046C,
+    -- Score is three bytes of BCD at 0x07FC. The six digits map to
+    -- 100000s, 10000s, 1000s, 100s, 10s, and a trailing "tenths" slot that
+    -- is always 0 in Castlevania — the displayed score is always a multiple
+    -- of 10.
+    SCORE = 0x07FC,
 }
 
--- Use safe memory read/write functions
-local read_u8 = memory.read_u8 or memory.readbyte
+local TARGET_SCORE = 5000
+local SAVESTATE = "savestates/5000pts.state"  -- prelude resolves against CHALLENGE_DIR
+
+-- Countdown image name -> frames to display it. The last entry ("GO") gets
+-- extra frames so the transition to active play feels deliberate.
+local COUNTDOWN = {
+    { name = "3.png",  frames = 60,  tick = true },
+    { name = "2.png",  frames = 60,  tick = true },
+    { name = "1.png",  frames = 60,  tick = true },
+    { name = "go.png", frames = 120, tick = false },
+}
+
+-- ---------------------------------------------------------------------------
+-- Helpers
+-- ---------------------------------------------------------------------------
+local read_u8  = memory.read_u8  or memory.readbyte
 local write_u8 = memory.write_u8 or memory.writebyte
 
--- Embedded TextGameTimer (to avoid require issues)
-local TextGameTimer = {}
-TextGameTimer.__index = TextGameTimer
-
-function TextGameTimer:new()
-    local o = {}
-    setmetatable(o, TextGameTimer)
-    
-    o.startTime = nil
-    o.elapsedTime = 0
-    o.isRunning = false
-    o.position = {x = 10, y = 10}
-    o.fontHeight = 12
-    o.fontForeground = "white"
-    o.fontBackground = "black"
-    o.format = "TIME: %02d:%02d.%02d"
-    
-    return o
+local function bcd_byte(b)
+    return math.floor(b / 16) * 10 + (b % 16)
 end
 
-function TextGameTimer:start()
-    if not self.isRunning then
-        self.startTime = os.clock()
-        self.isRunning = true
+local function read_score()
+    local hi = bcd_byte(read_u8(ADDR.SCORE))       -- 100000s + 10000s
+    local mi = bcd_byte(read_u8(ADDR.SCORE + 1))   -- 1000s + 100s
+    local lo = bcd_byte(read_u8(ADDR.SCORE + 2))   -- 10s + tenths (tenths is always 0)
+    return (hi * 10000 + mi * 100 + lo) * 10
+end
+
+local function use_system_bus_domain()
+    local ok, domains = pcall(memory.getmemorydomainlist)
+    if not ok or not domains then return end
+    for _, d in ipairs(domains) do
+        if d == "System Bus" then pcall(memory.usememorydomain, d); return end
     end
 end
 
-function TextGameTimer:stop()
-    if self.isRunning then
-        self.elapsedTime = self.elapsedTime + (os.clock() - self.startTime)
-        self.isRunning = false
-    end
+local function play_asset_sound(name)
+    local ok = pcall(SoundPlayer.play, RC.ASSETS_PATH .. "/" .. name)
+    return ok
 end
 
-function TextGameTimer:reset()
-    self.startTime = nil
-    self.elapsedTime = 0
-    self.isRunning = false
+local function draw_asset_image(name)
+    gui.drawImage(RC.ASSETS_PATH .. "/" .. name, 0, 0)
 end
 
-function TextGameTimer:getElapsedTime()
-    local currentElapsed = self.elapsedTime
-    if self.isRunning then
-        currentElapsed = currentElapsed + (os.clock() - self.startTime)
-    end
-    return currentElapsed
-end
-
-function TextGameTimer:formatTime(seconds)
-    local minutes = math.floor(seconds / 60)
-    local remainingSeconds = seconds % 60
-    local wholeSeconds = math.floor(remainingSeconds)
-    local milliseconds = math.floor((remainingSeconds - wholeSeconds) * 100)
-    
-    return string.format(self.format, minutes, wholeSeconds, milliseconds)
-end
-
-function TextGameTimer:draw()
-    if not self.isRunning and self.elapsedTime == 0 then
-        return
-    end
-    
-    local elapsed = self:getElapsedTime()
-    local timeText = self:formatTime(elapsed)
-    
-    gui.text(self.position.x, self.position.y, timeText)
-end
-
-function TextGameTimer:setPosition(x, y)
-    self.position = {x = x, y = y}
-end
-
-function TextGameTimer:setFontHeight(height)
-    self.fontHeight = height
-end
-
-function TextGameTimer:setFontColors(foreground, background)
-    self.fontForeground = foreground or "white"
-    self.fontBackground = background or "black"
-end
-
-function TextGameTimer:setTimeFormat(format)
-    self.format = format or "TIME: %02d:%02d.%02d"
-end
-
--- Try to load SoundPlayer, fallback to no-sound if not available
-local SoundPlayer = nil
-local soundAvailable = false
-
--- Debug Lua environment
-print("=== Lua Environment Debug ===")
-print("package.path:", package.path)
-print("package.cpath:", package.cpath)
-print("Current working directory:", debug.getinfo(1, "S").source)
-print("Script directory:", script_dir())
-print("ROOT path:", ROOT)
-print("Utils path:", PATH.utils)
-print("=== End Debug ===")
-
--- Try different ways to load SoundPlayer
-local function tryLoadSoundPlayer()
-    print("Attempting to load SoundPlayer...")
-    
-    -- Method 1: Direct require (original case)
-    local ok, sp, err = pcall(function() return require("SoundPlayer") end)
-    if ok and sp then
-        print("SoundPlayer loaded via direct require")
-        return sp, true
-    else
-        print("Direct require failed: " .. tostring(err))
-    end
-    
-    -- Method 2: Try with lowercase filename
-    local ok2, sp2, err2 = pcall(function() return require("soundplayer") end)
-    if ok2 and sp2 then
-        print("SoundPlayer loaded via lowercase require")
-        return sp2, true
-    else
-        print("Lowercase require failed: " .. tostring(err2))
-    end
-    
-    -- Method 3: Try with utils path (original case)
-    local ok3, sp3, err3 = pcall(function() return require("utils/SoundPlayer") end)
-    if ok3 and sp3 then
-        print("SoundPlayer loaded via utils/SoundPlayer")
-        return sp3, true
-    else
-        print("utils/SoundPlayer failed: " .. tostring(err3))
-    end
-    
-    -- Method 4: Try with utils path (lowercase)
-    local ok4, sp4, err4 = pcall(function() return require("utils/soundplayer") end)
-    if ok4 and sp4 then
-        print("SoundPlayer loaded via utils/soundplayer")
-        return sp4, true
-    else
-        print("utils/soundplayer failed: " .. tostring(err4))
-    end
-    
-    -- Method 5: Try with relative path (original case)
-    local ok5, sp5, err5 = pcall(function() return require("../../utils/SoundPlayer") end)
-    if ok5 and sp5 then
-        print("SoundPlayer loaded via relative path")
-        return sp5, true
-    else
-        print("Relative path failed: " .. tostring(err5))
-    end
-    
-    -- Method 6: Try with relative path (lowercase)
-    local ok6, sp6, err6 = pcall(function() return require("../../utils/soundplayer") end)
-    if ok6 and sp6 then
-        print("SoundPlayer loaded via relative lowercase path")
-        return sp6, true
-    else
-        print("Relative lowercase path failed: " .. tostring(err6))
-    end
-    
-    -- Method 7: Try direct file loading as fallback
-    print("Trying direct file loading...")
-    local soundplayerPath = PATH.utils .. "soundplayer.lua"
-    local file = io.open(soundplayerPath, "r")
-    if file then
-        file:close()
-        print("SoundPlayer file found at: " .. soundplayerPath)
-        
-        -- Try to load and execute the file directly
-        local ok7, sp7, err7 = pcall(function()
-            local chunk = loadfile(soundplayerPath)
-            if chunk then
-                return chunk()
-            else
-                return nil, "Failed to load file"
-            end
-        end)
-        
-        if ok7 and sp7 then
-            print("SoundPlayer loaded via direct file loading")
-            return sp7, true
-        else
-            print("Direct file loading failed: " .. tostring(err7))
-        end
-    else
-        print("SoundPlayer file not found at: " .. soundplayerPath)
-    end
-    
-    print("All SoundPlayer load attempts failed")
-    return nil, false
-end
-
-SoundPlayer, soundAvailable = tryLoadSoundPlayer()
-if not soundAvailable then
-    print("Warning: SoundPlayer not available - sound will be disabled")
-    -- Create a dummy SoundPlayer
-    SoundPlayer = {
-        available = function() return false end,
-        play = function() return false end,
-        stop = function() return false end,
-        diagnose = function() print("SoundPlayer not loaded - cannot run diagnostics") end
-    }
-else
-    print("SoundPlayer loaded successfully")
-end
-
--- Initialize timer
-local timer = TextGameTimer:new()
-timer:setPosition(10, 10)
-timer:setFontHeight(14)
-timer:setFontColors("yellow", "black")
-timer:setTimeFormat("TIME: %02d:%02d.%02d")
-
--- Score target (Castlevania uses BCD format, so 500 is the actual target, the first digit is never used.)
-local TARGET_SCORE = 500
-
--- Debug mode (set to true to see score debugging info)
-local DEBUG_SCORE = false
-
--- Countdown images and sounds
-local COUNTDOWN_IMAGES = {
-    { PATH.images .. "3.png", 60 },
-    { PATH.images .. "2.png", 60 },
-    { PATH.images .. "1.png", 60 },
-    { PATH.images .. "go.png", 120 },
-}
-
--- RAM addresses for score (from castlevania_raminfo.md)
-local SCORE_ADDRESS = 0x07FC  -- Score ($07FE used for 1UP checks)
-
--- State variables
-local challengeStarted = false
-local challengeCompleted = false
-local savestateLoaded = false
-local soundPlayed = false
-local countdownCompleted = false
-local countdownStarted = false
-local timerStarted = false
-local showingCompletionScreen = false
-local completionImageShown = false
-
--- Function to read score from memory (BCD format)
-function getScore()
-    -- Check if memory access is available
-    if not read_u8 then
-        print("Memory access not available - make sure ROM is loaded")
-        return 0
-    end
-    
-    local ok, score = pcall(function()
-        -- Read 3 bytes from the score address (BCD format)
-        local byte1 = read_u8(SCORE_ADDRESS)      -- Most significant byte
-        local byte2 = read_u8(SCORE_ADDRESS + 1)  -- Middle byte
-        local byte3 = read_u8(SCORE_ADDRESS + 2)  -- Least significant byte
-        
-        -- Convert each byte from BCD to decimal
-        local digit1 = math.floor(byte1 / 16)  -- Ten thousands
-        local digit2 = byte1 % 16              -- Thousands
-        local digit3 = math.floor(byte2 / 16)  -- Hundreds
-        local digit4 = byte2 % 16              -- Tens
-        local digit5 = math.floor(byte3 / 16)  -- Ones
-        local digit6 = byte3 % 16              -- Tenths (not displayed)
-        
-        -- Combine digits to form the score
-        local score = digit1 * 10000 + digit2 * 1000 + digit3 * 100 + digit4 * 10 + digit5
-        
-        -- Debug output (only if debug mode is on)
-        if DEBUG_SCORE then
-            print(string.format("Score bytes (BCD): %02X %02X %02X", byte1, byte2, byte3))
-            print(string.format("BCD digits: %d%d %d%d %d%d", digit1, digit2, digit3, digit4, digit5, digit6))
-            print(string.format("Calculated score: %d", score))
-        end
-        
-        return score
-    end)
-    
-    if not ok then
-        return 0
-    end
-    
-    return score
-end
-
--- Helper function to check if file exists
-local function file_exists(path)
-    local file = io.open(path, "r")
-    if file then
-        file:close()
-        return true
-    end
+local function asset_exists(name)
+    local f = io.open(RC.ASSETS_PATH .. "/" .. name, "r")
+    if f then f:close(); return true end
     return false
 end
 
--- Function to reset the challenge
-local function resetChallenge()
-    print("Resetting challenge...")
-    
-    -- Reset all state variables
-    challengeStarted = false
-    challengeCompleted = false
-    savestateLoaded = false
-    soundPlayed = false
-    countdownCompleted = false
-    countdownStarted = false
-    timerStarted = false
-    showingCompletionScreen = false
-    completionImageShown = false
-    
-    -- Reset timer
-    timer:reset()
-    
-    -- Reload savestate
-    if loadSavestate() then
-        countdownStarted = true
-        print("Challenge reset - countdown will restart")
-    else
-        print("Failed to reload savestate during reset")
-    end
-end
-
--- Function to save results to JSON
-local function saveResults(finalTime, finalScore)
-    local results = {
-        challengeName = "Castlevania 5000 Points Challenge",
-        username = "Player", -- Placeholder for now
-        completionTime = finalTime,
-        finalScore = finalScore,
-        timestamp = os.date("%Y-%m-%d %H:%M:%S"),
-        otherInfo = {
-            targetScore = TARGET_SCORE,
-            challengeType = "Speed Run",
-            platform = "NES",
-            game = "Castlevania"
-        }
-    }
-    
-    -- Convert to JSON string (simple implementation)
-    local jsonStr = string.format([[
-{
-    "challengeName": "%s",
-    "username": "%s",
-    "completionTime": "%s",
-    "finalScore": %d,
-    "timestamp": "%s",
-    "otherInfo": {
-        "targetScore": %d,
-        "challengeType": "%s",
-        "platform": "%s",
-        "game": "%s"
-    }
-}]], 
-        results.challengeName,
-        results.username,
-        results.completionTime,
-        results.finalScore,
-        results.timestamp,
-        results.otherInfo.targetScore,
-        results.otherInfo.challengeType,
-        results.otherInfo.platform,
-        results.otherInfo.game
-    )
-    
-    -- Save to file
-    local filename = "result_castlevania_5000pts.json"
-    local file = io.open(filename, "w")
-    if file then
-        file:write(jsonStr)
-        file:close()
-        print("Results saved to: " .. filename)
-        return true
-    else
-        print("Failed to save results file")
-        return false
-    end
-end
-
--- Function to show completion screen
-local function showCompletionScreen(finalTime, finalScore)
-    if showingCompletionScreen then
-        return -- Already showing
-    end
-    
-    showingCompletionScreen = true
-    print("Showing completion screen...")
-    
-    -- Save results
-    saveResults(finalTime, finalScore)
-    
-    -- Show completion image
-    local completionImagePath = PATH.audio .. "completed.png"
-    if file_exists(completionImagePath) then
-        completionImageShown = true
-        print("Completion image found: " .. completionImagePath)
-    else
-        print("Completion image not found: " .. completionImagePath)
-    end
-end
-
--- Helper function to neutralize player input
-local function neutralizeP1()
-    joypad.set({A=false,B=false,Start=false,Select=false,Up=false,Down=false,Left=false,Right=false},1)
-end
-
--- Helper function to force pause frame (freeze game state)
-local function forcePauseFrame()
+-- Freeze the game while the overlay is up. joypad.set({}, 1) drops any
+-- queued input so the player doesn't start moving the frame we release.
+local function freeze_game()
     write_u8(ADDR.USER_PAUSED, 1)
-    neutralizeP1()
+    joypad.set({}, 1)
 end
 
--- Helper function to unpause game (unfreeze game state)
-local function releasePause()
+local function release_game()
     write_u8(ADDR.USER_PAUSED, 0)
 end
 
--- Countdown function (exactly like your working script)
-local function countdown_hardpaused()
-    gui.clearGraphics()
-    
-    for i, item in ipairs(COUNTDOWN_IMAGES) do
-        local path, frames = item[1], item[2]
-        
-        -- Play tick sound for 3, 2, 1 (not for GO)
-        if i < #COUNTDOWN_IMAGES and soundAvailable then
-            local tickPath = PATH.audio .. "tock.wav"
-            if file_exists(tickPath) then
-                SoundPlayer.play(tickPath)
-            end
-        end
-        
-        -- Display countdown image
-        for frame = 1, frames do
-            forcePauseFrame() -- This freezes game state, NOT emulation
-            
-            if file_exists(path) then
-                gui.drawImage(path, 0, 0)
-            end
-            
-            emu.frameadvance() -- This advances the emulation frame
-        end
-    end
-    
-    -- Clear graphics and final frame
-    gui.clearGraphics()
-    forcePauseFrame()
-    emu.frameadvance()
-    
-    -- Unpause the game after countdown completes
-    releasePause()
-    countdownCompleted = true
+local function format_frames(frames)
+    local total_ms = math.floor((frames / 60) * 1000)
+    local m = math.floor(total_ms / 60000)
+    local s = math.floor((total_ms % 60000) / 1000)
+    local ms = total_ms % 1000
+    return string.format("%d:%02d.%03d", m, s, ms)
 end
 
--- Function to load savestate
-function loadSavestate()
-    local savestatePath = PATH.savestates .. "5000pts.state"
-    
-    -- Check if savestate file exists
-    local file = io.open(savestatePath, "r")
-    if file then
-        file:close()
-        
-        -- Try to load the savestate
-        local ok, err = pcall(function() savestate.load(savestatePath) end)
-        if ok then
-            savestateLoaded = true
-            print("Savestate loaded: " .. savestatePath)
-            return true
-        else
-            print("Error loading savestate: " .. tostring(err))
-            return false
+-- ---------------------------------------------------------------------------
+-- Challenge flow
+-- ---------------------------------------------------------------------------
+local function countdown()
+    gui.clearGraphics()
+    for _, step in ipairs(COUNTDOWN) do
+        if step.tick then play_asset_sound("tock.wav") end
+        for _ = 1, step.frames do
+            freeze_game()
+            if asset_exists(step.name) then draw_asset_image(step.name) end
+            emu.frameadvance()
         end
-    else
-        print("Warning: Savestate file not found: " .. savestatePath)
+    end
+    gui.clearGraphics()
+    freeze_game()
+    emu.frameadvance()
+    release_game()
+end
+
+local function load_start_state()
+    local ok, err = pcall(function() savestate.load(SAVESTATE) end)
+    if not ok then
+        console.log("Savestate load failed: " .. tostring(err))
         return false
     end
+    console.log("Savestate loaded: " .. SAVESTATE)
+    return true
 end
 
--- Check if ROM is loaded before starting
-if not memory or not memory.readbyte then
-    print("ERROR: No ROM loaded!")
-    print("Please load Castlevania ROM first, then run this script.")
-    print("Script will exit.")
+local function announce_completion(score, frames)
+    play_asset_sound("challengecompleted.wav")
+    RC.report_completion{
+        score = score,
+        completionTime = frames,
+    }
+end
+
+local function show_completion_screen(score, frames)
+    local time_text = format_frames(frames)
+    local has_image = asset_exists("completed.png")
+    while true do
+        if has_image then
+            draw_asset_image("completed.png")
+        else
+            gui.text(150, 100, "CHALLENGE COMPLETED!")
+        end
+        gui.text(10, 200, "Final Time:  " .. time_text)
+        gui.text(10, 220, "Final Score: " .. tostring(score))
+        gui.text(10, 240, "Close BizHawk when you're done.")
+        emu.frameadvance()
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- Main
+-- ---------------------------------------------------------------------------
+if not memory or not (memory.read_u8 or memory.readbyte) then
+    console.log("ERROR: No ROM loaded — cannot start Castlevania 5000 points.")
     return
 end
 
--- Set best memory domain (from working script)
-local function set_best_domain()
-    if not (memory.getmemorydomainlist and memory.usememorydomain) then return end
-    local ok, list = pcall(memory.getmemorydomainlist)
-    if not ok or not list then return end
-    local prefer = { "System Bus", "RAM" }
-    for _, want in ipairs(prefer) do
-        for _, d in ipairs(list) do
-            if d == want then pcall(memory.usememorydomain, d); return end
-        end
+use_system_bus_domain()
+console.log(string.format("Castlevania 5000 Points Challenge - player: %s", RC.USERNAME))
+
+if not load_start_state() then
+    -- Surface a visible message rather than sitting silently in an empty game.
+    while true do
+        gui.text(10, 10, "Savestate missing for 5000pts.")
+        gui.text(10, 25, "Reinstall challenge assets from the RetroChallenges app.")
+        emu.frameadvance()
     end
-    if #list > 0 then pcall(memory.usememorydomain, list[1]) end
 end
 
--- Set memory domain after ROM is loaded
-set_best_domain()
+countdown()
 
-print("Castlevania 5000 Points Challenge Script Starting...")
-print("Make sure Castlevania ROM is loaded and running!")
-print("Controls: R = Reset Challenge, ESC = Quit (on completion screen)")
-
--- Input handling function
-local function handleInput()
-    -- Try different input methods
-    local inputHandled = false
-    
-    -- Method 1: Try client input (check for R without modifiers)
-    local ok1, inputState = pcall(function() return client.getInput() end)
-    if ok1 and inputState then
-        -- Check for R key without Ctrl modifier
-        if inputState.R and not inputState.Ctrl then
-            resetChallenge()
-            inputHandled = true
-        elseif showingCompletionScreen and inputState.Escape then
-            client.exit()
-            inputHandled = true
-        end
-    else
-        -- Method 2: Try joypad input (fallback)
-        local ok2, joypadState = pcall(function() return joypad.get()[1] end)
-        if ok2 and joypadState then
-            if joypadState.R then
-                resetChallenge()
-                inputHandled = true
-            elseif showingCompletionScreen and joypadState.Start then
-                client.exit()
-                inputHandled = true
-            end
-        end
-    end
-    
-    return inputHandled
-end
-
--- Main loop
+local start_frame = emu.framecount()
 while true do
-    -- Handle input (R for reset, ESC for quit on completion screen)
-    if handleInput() then
-        -- Input was handled (reset or quit), continue to next frame
-        emu.frameadvance()
-        goto continue
+    local score = read_score()
+    local elapsed = emu.framecount() - start_frame
+
+    gui.text(10, 10, string.format("Score: %d / %d", score, TARGET_SCORE))
+    gui.text(10, 25, "Time:  " .. format_frames(elapsed))
+
+    if score >= TARGET_SCORE then
+        announce_completion(score, elapsed)
+        show_completion_screen(score, elapsed)
+        -- show_completion_screen never returns (infinite draw loop).
     end
-    
-    -- Load savestate on first run
-    if not savestateLoaded then
-        if loadSavestate() then
-            -- Start countdown after savestate is loaded
-            countdownStarted = true
-        end
-        -- Mark as attempted to prevent repeated attempts
-        savestateLoaded = true
-    end
-    
-    -- Run countdown if it hasn't been completed yet
-    if countdownStarted and not countdownCompleted then
-        countdown_hardpaused()
-        challengeStarted = true
-    end
-    
-    -- Start timer after countdown completes
-    if challengeStarted and not timerStarted then
-        timer:start()
-        timerStarted = true
-    end
-    
-    -- Get current score
-    local currentScore = getScore()
-    
-    -- Check if challenge is completed
-    if challengeStarted and not challengeCompleted and currentScore >= TARGET_SCORE then
-        timer:stop()
-        challengeCompleted = true
-        
-        -- Play completion sound
-        if not soundPlayed then
-            local soundPath = PATH.audio .. "challengecompleted.wav"
-            
-            -- Try to play completion sound
-            if soundAvailable then
-                if file_exists(soundPath) then
-                    local ok = pcall(function()
-                        return SoundPlayer.play(soundPath)
-                    end)
-                    if ok then
-                        print("Challenge completed! Score: " .. currentScore .. " - Sound played!")
-                    else
-                        print("Challenge completed! Score: " .. currentScore .. " - Sound failed to play")
-                    end
-                else
-                    print("Challenge completed! Score: " .. currentScore .. " - Sound file not found: " .. soundPath)
-                end
-            else
-                print("Challenge completed! Score: " .. currentScore .. " - SoundPlayer not available")
-            end
-            soundPlayed = true
-        else
-            print("Challenge completed! Score: " .. currentScore)
-        end
-        
-        -- Show completion screen
-        local finalTime = timer:formatTime(timer:getElapsedTime())
-        showCompletionScreen(finalTime, currentScore)
-    end
-    
-    -- Display completion screen if challenge is completed
-    if showingCompletionScreen then
-        -- Show completion image
-        if completionImageShown then
-            local completionImagePath = PATH.audio .. "completed.png"
-            gui.drawImage(completionImagePath, 0, 0)
-        else
-            -- Fallback text if image not found
-            gui.text(150, 100, "CHALLENGE COMPLETED!")
-        end
-        
-        -- Show completion info
-        gui.text(10, 200, "Final Time: " .. timer:formatTime(timer:getElapsedTime()))
-        gui.text(10, 220, "Final Score: " .. currentScore)
-        gui.text(10, 240, "Press R to Reset Challenge")
-        gui.text(10, 260, "Press ESC to Quit BizHawk")
-        
-        -- Skip normal display
-        emu.frameadvance()
-        goto continue
-    end
-    
-    -- Display timer only when challenge is running
-    if challengeStarted and not challengeCompleted then
-        timer:draw()
-    end
-    
+
     emu.frameadvance()
-    
-    ::continue::
 end
