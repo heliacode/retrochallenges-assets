@@ -140,6 +140,10 @@ local function show_completion_screen(score, frames)
     local time_text = format_frames(frames)
     local has_image = asset_exists("completed.png")
     while true do
+        -- Same USER_PAUSED freeze trick the countdown uses: stops game state
+        -- from advancing (Simon no longer walks under the overlay) while the
+        -- emulator keeps advancing frames so gui.text keeps rendering.
+        freeze_game()
         if has_image then
             draw_asset_image("completed.png")
         else
