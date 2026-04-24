@@ -151,7 +151,7 @@ local function show_completion_screen(score, frames)
         end
         gui.text(10, 200, "Final Time:  " .. time_text)
         gui.text(10, 220, "Final Score: " .. tostring(score))
-        gui.text(10, 240, "Close BizHawk when you're done.")
+        gui.text(10, 240, "Return to RetroChallenges for the next one.")
         emu.frameadvance()
     end
 end
