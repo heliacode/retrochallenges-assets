@@ -216,4 +216,21 @@ function M.banner.win()           draw_banner_fullscreen("completed.png",     "C
 function M.banner.fail()          draw_banner_fullscreen("failed.png",        "CHALLENGE FAILED",    100) end
 function M.banner.personalBest()  draw_banner_fullscreen("personal_best.png", "NEW BEST!",           120) end
 
+-- ---------------------------------------------------------------------------
+-- Rank medals (24x24). Useful for "you placed #N" overlays.
+-- 1 -> gold, 2 -> silver, 3 -> bronze; rank 4+ falls back to "#N" text.
+-- ---------------------------------------------------------------------------
+local MEDAL_W = 24
+function M.drawMedal(x, y, rank)
+    if type(rank) ~= "number" or rank < 1 then return end
+    if rank <= 3 then
+        local rel = "hud/medal_" .. rank .. ".png"
+        if M.assetExists(rel) then
+            gui.drawImage(asset_path(rel), x, y, MEDAL_W, MEDAL_W)
+            return
+        end
+    end
+    gui.text(x, y, "#" .. rank)
+end
+
 return M
