@@ -19,17 +19,16 @@ local ADDR = {
     -- advancing frames; how the 3-2-1-GO and failure/completion overlays
     -- render without the game continuing underneath.
     USER_PAUSED   = 0x0022,
-    -- Simon's current HP. 0x40 (64) is a full heart bar; 0 is dead
-    -- (triggers death animation, then either respawn or game-over).
+    -- Lives counter. Documented on the RetroChallenges Castlevania RAM
+    -- guide: "01 = last life, can be set to #ff but displays as 99 max".
+    -- Decrements on every death cause (HP zero, pit, instant-kill traps),
+    -- which makes this the cleanest universal death signal.
+    LIVES         = 0x002A,
+    -- Simon's current HP. 0x40 (64) is a full heart bar.
     HEALTH_REAL   = 0x0045,
     HEARTS        = 0x0071,
     SUBWEAPON     = 0x015B,
     WHIP_LEVEL    = 0x0070,
-    -- Simon's state machine byte. Pit deaths don't drain HP, but they do
-    -- toggle this byte. We display it during play (debug overlay) so we
-    -- can identify the "dying from a fall" value and add it as a death
-    -- signal in a follow-up.
-    SIMON_STATE   = 0x046C,
     -- Mummy boss HP. The challenge ends when this reaches 0.
     BOSS_HEALTH   = 0x01A9,
 }
@@ -184,22 +183,20 @@ end
 -- Edge detection on death avoids falsely failing on the first frame of
 -- the savestate load, where HP memory may briefly read 0 before init.
 -- ---------------------------------------------------------------------------
+-- Death detection via the lives counter. Any death cause (HP zero, pit
+-- fall, instant-kill trap) decrements 0x002A by one — that's why we use
+-- it instead of HEALTH_REAL, which only catches damage-based deaths.
+-- A lives transition from N to N-1 means "Simon just died" regardless of
+-- how it happened.
 local function play_round()
     local start_frame = emu.framecount()
-    local prev_hp = read_u8(ADDR.HEALTH_REAL)
-    -- Track the unique values SIMON_STATE has held since the round started.
-    -- We log them to the BizHawk Lua console so the player can read off
-    -- whatever value appears during a pit death. Cap the set size so a
-    -- pathological game can't blow out the log.
-    local seen_states = {}
-    local seen_count = 0
-    local STATE_LOG_CAP = 32
+    local prev_lives = read_u8(ADDR.LIVES)
 
     while true do
-        local simon_hp    = read_u8(ADDR.HEALTH_REAL)
-        local simon_state = read_u8(ADDR.SIMON_STATE)
-        local boss_hp     = read_u8(ADDR.BOSS_HEALTH)
-        local elapsed     = emu.framecount() - start_frame
+        local simon_hp  = read_u8(ADDR.HEALTH_REAL)
+        local boss_hp   = read_u8(ADDR.BOSS_HEALTH)
+        local lives_now = read_u8(ADDR.LIVES)
+        local elapsed   = emu.framecount() - start_frame
 
         if boss_hp == 0 then
             play_asset_sound("challengecompleted.wav")
@@ -208,23 +205,20 @@ local function play_round()
             return "done"  -- never actually returns; completion loop is infinite
         end
 
-        if prev_hp > 0 and simon_hp == 0 then
+        -- Detect the *transition* (N -> N-1) rather than any low absolute
+        -- value, so we don't trigger from whatever the savestate happens
+        -- to start with. If 0xFF rolls in (set-lives cheat code), still
+        -- counts as "less than before" and triggers fail — that's fine,
+        -- a savestate that mutates lives mid-run isn't a real run.
+        if lives_now < prev_lives then
             return show_failure_screen(elapsed)  -- "retry" or loops forever
         end
-        prev_hp = simon_hp
-
-        if not seen_states[simon_state] and seen_count < STATE_LOG_CAP then
-            seen_states[simon_state] = true
-            seen_count = seen_count + 1
-            console.log(string.format(
-                "[bigbridge] new SIMON_STATE seen: 0x%02X (%d) at frame %d, hp=%d",
-                simon_state, simon_state, elapsed, simon_hp))
-        end
+        prev_lives = lives_now
 
         gui.text(10, 10, "Time:  " .. format_frames(elapsed))
         gui.text(10, 25, string.format("HP:    %d / %d", simon_hp, FULL_HEALTH))
-        gui.text(10, 40, "Mummy: " .. boss_hp)
-        gui.text(10, 55, string.format("State: 0x%02X", simon_state))
+        gui.text(10, 40, "Lives: " .. lives_now)
+        gui.text(10, 55, "Mummy: " .. boss_hp)
         emu.frameadvance()
     end
 end
