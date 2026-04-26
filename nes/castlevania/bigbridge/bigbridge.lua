@@ -1,256 +1,105 @@
 -- Castlevania Cross the Big Bridge Challenge
--- Savestate drops Simon at the start of the bridge with a loaded loadout
--- (12 hearts, axe subweapon, long whip). Win by defeating the mummy boss
--- at the end. If Simon dies along the way the challenge fails and the
--- player can press R to retry from the same savestate.
+-- Drops Simon at the start of the bridge with a loaded loadout
+-- (12 hearts, axe subweapon, long whip). Win by defeating the mummy
+-- boss at the end. Any death — pit, damage, instant-kill — fails the
+-- run; pressing R at any moment restarts from the savestate.
+--
+-- Built on the RcChallenge framework. This file is just the per-game
+-- knobs (memory addresses, win/fail predicates, HUD layout, the
+-- USER_PAUSED freeze trick).
 
-local RC = _G.RC or error(
-    "This challenge requires the RetroChallenges launcher. Start it from the\n" ..
-    "app rather than loading this .lua directly in BizHawk."
-)
+local hud       = require("RcHud")
+local challenge = require("RcChallenge")
 
-local SoundPlayer = require("SoundPlayer")
-
--- ---------------------------------------------------------------------------
--- Memory map (US NES release)
--- ---------------------------------------------------------------------------
-local ADDR = {
-    -- Writing 1 freezes the game's own state machine while BizHawk keeps
-    -- advancing frames; how the 3-2-1-GO and failure/completion overlays
-    -- render without the game continuing underneath.
-    USER_PAUSED   = 0x0022,
-    -- Lives counter. Documented on the RetroChallenges Castlevania RAM
-    -- guide: "01 = last life, can be set to #ff but displays as 99 max".
-    -- Decrements on every death cause (HP zero, pit, instant-kill traps),
-    -- which makes this the cleanest universal death signal.
-    LIVES         = 0x002A,
-    -- Simon's current HP. 0x40 (64) is a full heart bar.
-    HEALTH_REAL   = 0x0045,
-    HEARTS        = 0x0071,
-    SUBWEAPON     = 0x015B,
-    WHIP_LEVEL    = 0x0070,
-    -- Mummy boss HP. The challenge ends when this reaches 0.
-    BOSS_HEALTH   = 0x01A9,
-}
-
-local FULL_HEALTH   = 0x40
-local START_HEARTS  = 12
-local AXE_WEAPON    = 0x0D
-local LONG_WHIP     = 0x02
-
-local SAVESTATE = "savestates/bigbridge.state"  -- prelude resolves against CHALLENGE_DIR
-
-local COUNTDOWN = {
-    { name = "3.png",  frames = 60,  tick = true },
-    { name = "2.png",  frames = 60,  tick = true },
-    { name = "1.png",  frames = 60,  tick = true },
-    { name = "go.png", frames = 120, tick = false },
-}
-
--- ---------------------------------------------------------------------------
--- Helpers
--- ---------------------------------------------------------------------------
 local read_u8  = memory.read_u8  or memory.readbyte
 local write_u8 = memory.write_u8 or memory.writebyte
 
-local function use_system_bus_domain()
-    local ok, domains = pcall(memory.getmemorydomainlist)
-    if not ok or not domains then return end
-    for _, d in ipairs(domains) do
-        if d == "System Bus" then pcall(memory.usememorydomain, d); return end
-    end
-end
+-- ---------------------------------------------------------------------------
+-- Memory map (US NES release of Castlevania)
+-- ---------------------------------------------------------------------------
+local USER_PAUSED  = 0x0022   -- write 1 to freeze game state in place
+local LIVES        = 0x002A   -- decrements on every death cause
+local HEALTH_REAL  = 0x0045   -- 0x40 = full
+local HEARTS       = 0x0071   -- subweapon ammo
+local SUBWEAPON    = 0x015B   -- 0x0D = axe
+local WHIP_LEVEL   = 0x0070   -- 0x02 = long
+local BOSS_HEALTH  = 0x01A9   -- mummy
 
-local function play_asset_sound(name)
-    return pcall(SoundPlayer.play, RC.ASSETS_PATH .. "/" .. name)
-end
+local FULL_HEALTH    = 0x40
+local START_HEARTS   = 12
+local AXE_WEAPON     = 0x0D
+local LONG_WHIP      = 0x02
 
-local function draw_asset_image(name)
-    gui.drawImage(RC.ASSETS_PATH .. "/" .. name, 0, 0)
-end
-
-local function asset_exists(name)
-    local f = io.open(RC.ASSETS_PATH .. "/" .. name, "r")
-    if f then f:close(); return true end
-    return false
-end
-
+-- ---------------------------------------------------------------------------
+-- Game-specific freeze trick: writing USER_PAUSED=1 stops Castlevania's
+-- own state machine while BizHawk keeps advancing emulation frames so
+-- our gui.draw* keeps rendering during overlays.
+-- ---------------------------------------------------------------------------
 local function freeze_game()
-    write_u8(ADDR.USER_PAUSED, 1)
+    write_u8(USER_PAUSED, 1)
     joypad.set({}, 1)
 end
 
 local function release_game()
-    write_u8(ADDR.USER_PAUSED, 0)
-end
-
-local function format_frames(frames)
-    local total_ms = math.floor((frames / 60) * 1000)
-    local m = math.floor(total_ms / 60000)
-    local s = math.floor((total_ms % 60000) / 1000)
-    local ms = total_ms % 1000
-    return string.format("%d:%02d.%03d", m, s, ms)
-end
-
--- Poll the keyboard for a one-shot "R pressed" edge. Returns true only on
--- the frame the key goes from up to down, so holding R doesn't spam retries.
-local _prev_r = false
-local function r_pressed()
-    local pressed = (input.get() or {}).R and true or false
-    local edge = pressed and not _prev_r
-    _prev_r = pressed
-    return edge
+    write_u8(USER_PAUSED, 0)
 end
 
 -- ---------------------------------------------------------------------------
--- Gameplay setup
+-- Per-attempt state. The fail predicate compares the lives counter to
+-- whatever it was at the start of THIS attempt — set in setup() so it
+-- gets re-baselined on every retry.
 -- ---------------------------------------------------------------------------
--- Hand Simon the loadout the challenge expects. Writing to HEARTS and then
--- briefly zeroing + restoring forces the HUD to repaint.
-local function setup_simon()
-    write_u8(ADDR.HEARTS, 0)
-    emu.frameadvance()
-    write_u8(ADDR.HEARTS, START_HEARTS)
-    write_u8(ADDR.SUBWEAPON, AXE_WEAPON)
-    write_u8(ADDR.WHIP_LEVEL, LONG_WHIP)
-    emu.frameadvance()
-end
+local prev_lives = 0
 
-local function countdown()
-    gui.clearGraphics()
-    for _, step in ipairs(COUNTDOWN) do
-        if step.tick then play_asset_sound("tock.wav") end
-        for _ = 1, step.frames do
-            freeze_game()
-            if asset_exists(step.name) then draw_asset_image(step.name) end
-            emu.frameadvance()
-        end
-    end
-    gui.clearGraphics()
-    freeze_game()
-    emu.frameadvance()
-    release_game()
-end
+-- ---------------------------------------------------------------------------
+-- Run the challenge
+-- ---------------------------------------------------------------------------
+challenge.run{
+    savestate    = "savestates/bigbridge.state",
+    countdown    = true,
+    freeze_game  = freeze_game,
+    release_game = release_game,
 
-local function load_start_state()
-    local ok, err = pcall(function() savestate.load(SAVESTATE) end)
-    if not ok then
-        console.log("Savestate load failed: " .. tostring(err))
+    -- Hand Simon his loadout. The hearts double-write (0 then 12) is a
+    -- known HUD-refresh trick so the on-screen heart counter actually
+    -- updates after the savestate load.
+    setup = function(state)
+        write_u8(HEARTS, 0)
+        emu.frameadvance()
+        write_u8(HEARTS, START_HEARTS)
+        write_u8(SUBWEAPON, AXE_WEAPON)
+        write_u8(WHIP_LEVEL, LONG_WHIP)
+        emu.frameadvance()
+        prev_lives = read_u8(LIVES)
+    end,
+
+    win = function() return read_u8(BOSS_HEALTH) == 0 end,
+
+    -- Lives decrement is the universal death signal — catches pit falls
+    -- (which don't drain HP), damage deaths, and instant-kill traps.
+    fail = function()
+        local now = read_u8(LIVES)
+        if now < prev_lives then return true end
+        prev_lives = now
         return false
-    end
-    console.log("Savestate loaded: " .. SAVESTATE)
-    return true
-end
+    end,
 
--- ---------------------------------------------------------------------------
--- Outcome screens
--- ---------------------------------------------------------------------------
-local function show_completion_screen(frames)
-    local time_text = format_frames(frames)
-    local has_image = asset_exists("completed.png")
-    while true do
-        freeze_game()
-        if has_image then
-            draw_asset_image("completed.png")
-        else
-            gui.text(150, 100, "CHALLENGE COMPLETED!")
-        end
-        gui.text(10, 200, "Final Time:  " .. time_text)
-        gui.text(10, 220, "Mummy boss defeated.")
-        gui.text(10, 240, "Return to RetroChallenges for the next one.")
-        emu.frameadvance()
-    end
-end
+    hud = function(state)
+        local simon_hp = read_u8(HEALTH_REAL)
+        local boss_hp  = read_u8(BOSS_HEALTH)
+        local lives    = read_u8(LIVES)
 
--- Returns "retry" when the player hits R. Otherwise loops forever so the
--- player can read the screen until they close or switch away.
-local function show_failure_screen(frames)
-    local time_text = format_frames(frames)
-    while true do
-        freeze_game()
-        gui.text(90,  80, "CHALLENGE FAILED")
-        gui.text(70, 100, "Simon didn't make it this time.")
-        gui.text(90, 120, "Died at: " .. time_text)
-        gui.text(40, 160, "Press R to retry from the start of the bridge.")
-        gui.text(40, 180, "Or return to RetroChallenges to pick another.")
-        if r_pressed() then return "retry" end
-        emu.frameadvance()
-    end
-end
+        gui.text(10,  6, "TIME")
+        hud.drawTime(48,  4, state.elapsed)
+        gui.text(10, 30, "HP")
+        hud.drawBar(28, 32, 70, simon_hp, FULL_HEALTH, "hp")
+        gui.text(10, 46, "LIVES")
+        hud.drawDigits(48, 44, tostring(lives))
+        gui.text(10, 70, "MUMMY")
+        hud.drawDigits(48, 68, tostring(boss_hp))
+    end,
 
--- ---------------------------------------------------------------------------
--- One round of play. Win = boss HP 0, fail = Simon HP goes from >0 to 0.
--- Edge detection on death avoids falsely failing on the first frame of
--- the savestate load, where HP memory may briefly read 0 before init.
--- ---------------------------------------------------------------------------
--- Death detection via the lives counter. Any death cause (HP zero, pit
--- fall, instant-kill trap) decrements 0x002A by one — that's why we use
--- it instead of HEALTH_REAL, which only catches damage-based deaths.
--- A lives transition from N to N-1 means "Simon just died" regardless of
--- how it happened.
-local function play_round()
-    local start_frame = emu.framecount()
-    local prev_lives = read_u8(ADDR.LIVES)
-
-    while true do
-        local simon_hp  = read_u8(ADDR.HEALTH_REAL)
-        local boss_hp   = read_u8(ADDR.BOSS_HEALTH)
-        local lives_now = read_u8(ADDR.LIVES)
-        local elapsed   = emu.framecount() - start_frame
-
-        if boss_hp == 0 then
-            play_asset_sound("challengecompleted.wav")
-            RC.report_completion{ completionTime = elapsed }
-            show_completion_screen(elapsed)
-            return "done"  -- never actually returns; completion loop is infinite
-        end
-
-        -- Detect the *transition* (N -> N-1) rather than any low absolute
-        -- value, so we don't trigger from whatever the savestate happens
-        -- to start with. If 0xFF rolls in (set-lives cheat code), still
-        -- counts as "less than before" and triggers fail — that's fine,
-        -- a savestate that mutates lives mid-run isn't a real run.
-        if lives_now < prev_lives then
-            return show_failure_screen(elapsed)  -- "retry" or loops forever
-        end
-        prev_lives = lives_now
-
-        gui.text(10, 10, "Time:  " .. format_frames(elapsed))
-        gui.text(10, 25, string.format("HP:    %d / %d", simon_hp, FULL_HEALTH))
-        gui.text(10, 40, "Lives: " .. lives_now)
-        gui.text(10, 55, "Mummy: " .. boss_hp)
-        emu.frameadvance()
-    end
-end
-
--- ---------------------------------------------------------------------------
--- Main
--- ---------------------------------------------------------------------------
-if not memory or not (memory.read_u8 or memory.readbyte) then
-    console.log("ERROR: No ROM loaded — cannot start Big Bridge challenge.")
-    return
-end
-
-use_system_bus_domain()
-console.log(string.format("Castlevania Big Bridge Challenge - player: %s", RC.USERNAME))
-
-if not load_start_state() then
-    while true do
-        gui.text(10, 10, "Savestate missing for bigbridge.")
-        gui.text(10, 25, "Reinstall challenge assets from the RetroChallenges app.")
-        emu.frameadvance()
-    end
-end
-
-setup_simon()
-countdown()
-
--- Retry loop. play_round returns "retry" when the player asks to restart;
--- anything else (including the completion-screen infinite loop) never
--- comes back, so falling off the while is the "closed the emulator" path.
-while play_round() == "retry" do
-    release_game()
-    load_start_state()
-    setup_simon()
-    countdown()
-end
+    result = function(state)
+        return { completionTime = state.elapsed }
+    end,
+}
