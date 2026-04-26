@@ -69,11 +69,13 @@ end
 -- ---------------------------------------------------------------------------
 -- Digit rendering
 -- ---------------------------------------------------------------------------
--- The existing pixel-art set is named `_sSmall<N>blue.png` (23x29). We give
--- each digit + separator a small horizontal advance; if the sprite is
--- missing we fall through to gui.text so any character we haven't drawn
--- art for still appears.
-local DIGIT_W = 14   -- tighter than the 23-px sprite width — digits overlap slightly for a kerned look
+-- The existing pixel-art set is named `_sSmall<N>blue.png` (23x29 source).
+-- We render them downscaled to ~50% (12x15) so the HUD doesn't dominate
+-- the playfield; BizHawk's gui.drawImage(path, x, y, w, h) handles the
+-- scaling. Advance is tighter than the draw width so glyphs kern.
+local DIGIT_DRAW_W = 12
+local DIGIT_DRAW_H = 15
+local DIGIT_ADVANCE = 10
 local FALLBACK_W = 8
 
 local DIGIT_NAME = {
@@ -95,8 +97,8 @@ function M.drawDigits(x, y, str)
         local glyph = DIGIT_NAME[ch]
         local rel = glyph and (glyph .. ".png")
         if rel and M.assetExists(rel) then
-            gui.drawImage(asset_path(rel), cx, y)
-            cx = cx + DIGIT_W
+            gui.drawImage(asset_path(rel), cx, y, DIGIT_DRAW_W, DIGIT_DRAW_H)
+            cx = cx + DIGIT_ADVANCE
         else
             gui.text(cx, y, ch)
             cx = cx + FALLBACK_W
