@@ -139,10 +139,17 @@ end
 
 local function show_completion_screen(score, frames)
     local time_text = format_frames(frames)
+    -- Let the game play normally for 1 second after the threshold so the
+    -- player feels the win land (Simon's whip mid-swing, the score tick
+    -- finishing) before we slap the banner on screen and freeze the game.
+    local POST_WIN_PLAY_FRAMES = 60
+    for _ = 1, POST_WIN_PLAY_FRAMES do
+        emu.frameadvance()
+    end
     while true do
-        -- Same USER_PAUSED freeze trick the countdown uses: stops game state
-        -- from advancing (Simon no longer walks under the overlay) while the
-        -- emulator keeps advancing frames so gui.draw* keeps rendering.
+        -- USER_PAUSED freeze: stops game state from advancing (Simon no
+        -- longer walks) while the emulator keeps advancing frames so
+        -- gui.draw* keeps rendering.
         freeze_game()
         -- Full-screen completion banner. Falls back to text if completed.png
         -- isn't shipped — RcHud handles either path.
@@ -181,13 +188,12 @@ while true do
     local score = read_score()
     local elapsed = emu.framecount() - start_frame
 
-    -- Pixel-art digit readouts via RcHud. Sprites are ~23x29; we leave
-    -- room between rows so the bottom of the score doesn't overlap the
-    -- top of the time. Labels stay as gui.text since they're cosmetic.
-    gui.text(10, 6, "SCORE")
-    hud.drawScore(54, 4, score, TARGET_SCORE)
-    gui.text(10, 42, "TIME")
-    hud.drawTime(54, 40, elapsed)
+    -- Pixel-art digit readouts via RcHud (digits draw at 12x15). Labels
+    -- stay as gui.text since they're cosmetic.
+    gui.text(10,  6, "SCORE")
+    hud.drawScore(48,  4, score, TARGET_SCORE)
+    gui.text(10, 24, "TIME")
+    hud.drawTime(48, 22, elapsed)
 
     if score >= TARGET_SCORE then
         announce_completion(score, elapsed)
