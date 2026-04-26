@@ -18,15 +18,22 @@
           "lua": "nes\\castlevania\\bigbridge\\bigbridge.lua",
           "difficulty": "Easy",
           "estimatedTime": "3-4 minutes"
+        },
+        {
+          "name": "Phantom Bat — No Subweapon!",
+          "description": "Defeat the bat boss using whip only — die once and the run is over.",
+          "lua": "nes\\castlevania\\bat-boss-no-sub\\bat-boss-no-sub.lua",
+          "difficulty": "Medium",
+          "estimatedTime": "1-3 minutes"
         }
       ]
-    }    
+    }
   ],
   "metadata": {
-    "version": "1.0.0",
-    "lastUpdated": "2025-09-18T17:30:00Z",
+    "version": "1.1.0",
+    "lastUpdated": "2026-04-26T19:50:00Z",
     "totalGames": 1,
-    "totalChallenges": 2,
+    "totalChallenges": 3,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"]
   }
 }
