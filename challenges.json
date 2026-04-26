@@ -25,15 +25,22 @@
           "lua": "nes\\castlevania\\bat-boss-no-sub\\bat-boss-no-sub.lua",
           "difficulty": "Medium",
           "estimatedTime": "1-3 minutes"
+        },
+        {
+          "name": "Medusa Boss Fight",
+          "description": "Defeat Medusa as fast as possible. Loaded out with 49 hearts, triple-shot holy water — die once and the run is over.",
+          "lua": "nes\\castlevania\\medusa-boss-fight\\medusa-boss-fight.lua",
+          "difficulty": "Medium",
+          "estimatedTime": "1-3 minutes"
         }
       ]
     }
   ],
   "metadata": {
-    "version": "1.1.0",
-    "lastUpdated": "2026-04-26T19:50:00Z",
+    "version": "1.2.0",
+    "lastUpdated": "2026-04-26T20:00:00Z",
     "totalGames": 1,
-    "totalChallenges": 3,
+    "totalChallenges": 4,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"]
   }
 }
