@@ -70,12 +70,12 @@ end
 -- Digit rendering
 -- ---------------------------------------------------------------------------
 -- The existing pixel-art set is named `_sSmall<N>blue.png` (23x29 source).
--- We render them downscaled to ~50% (12x15) so the HUD doesn't dominate
--- the playfield; BizHawk's gui.drawImage(path, x, y, w, h) handles the
--- scaling. Advance is tighter than the draw width so glyphs kern.
-local DIGIT_DRAW_W = 12
-local DIGIT_DRAW_H = 15
-local DIGIT_ADVANCE = 10
+-- We render them downscaled to ~75% (18x22) — large enough to read
+-- comfortably without the HUD dominating the playfield. BizHawk's
+-- gui.drawImage(path, x, y, w, h) handles the scaling.
+local DIGIT_DRAW_W = 18
+local DIGIT_DRAW_H = 22
+local DIGIT_ADVANCE = 14
 local FALLBACK_W = 8
 
 local DIGIT_NAME = {
