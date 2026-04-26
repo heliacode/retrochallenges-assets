@@ -1,29 +1,34 @@
 -- RcHud: shared HUD primitives for RetroChallenges Lua scripts.
 --
--- Every drawing primitive in here works two ways:
---   1. If the matching PNG exists under <ASSETS_PATH>/<subdir>/, we
---      gui.drawImage it. Crisp pixel-art HUD.
---   2. If the asset is missing, we fall back to gui.text / gui.drawRectangle
---      so callers can ship the API now and add art later without code changes.
+-- Each primitive renders a PNG when the matching asset exists under
+-- <ASSETS_PATH>/, otherwise falls back to gui.text / gui.drawRectangle so
+-- callers can ship today and add art incrementally without code changes.
 --
 -- Usage from a challenge script:
+--
 --   local hud = require("RcHud")
---   hud.drawTopStrip()
---   hud.drawTime(10, 10, emu.framecount() - start_frame)
---   hud.drawScore(10, 26, current_score, target_score)
---   hud.drawLives(10, 42, lives_count, 3)
---   hud.drawBar(10, 58, 80, simon_hp, 64, "hp")
---   hud.banner.fail()
+--   hud.drawTime    (10, 10, emu.framecount() - start_frame)
+--   hud.drawScore   (10, 26, current_score, target_score)
+--   hud.drawLives   (10, 42, lives_count, 3)
+--   hud.drawBar     (10, 58, 80, simon_hp, 64, "hp")
 --   hud.drawKeyPrompt(60, 180, "R", "Retry")
+--   hud.banner.win()
+--   hud.banner.fail()
 --
 -- Asset filename conventions (relative to <ASSETS_PATH>/):
---   digits/d_0.png ... d_9.png      (16x24 each, recommended)
---   digits/d_colon.png, d_dot.png, d_slash.png, d_minus.png
---   hud/strip_top.png               (256x32, full-width HUD strip)
---   hud/heart_full.png, heart_empty.png  (12x12)
---   hud/bar_frame.png               (64x8 frame; fill is drawn programmatically)
---   keys/k_r.png, k_esc.png, k_space.png ... (16x16 each)
---   banners/complete.png, failed.png, personal_best.png  (centered, ~256 wide)
+--
+--   Digits (existing pixel-art set, ~23x29 each):
+--     _sSmall0blue.png ... _sSmall9blue.png
+--     _sSmallSemiblue.png            (used for ":" and "." separators)
+--   Keys (24x24, derived from Kenney CC0 Input Prompts):
+--     keys/k_r.png, keys/k_escape.png, keys/k_space.png
+--   Banners (full-screen 256x240 overlays):
+--     completed.png                  (win)
+--     failed.png                     (fail; falls back to text)
+--     personal_best.png              (NEW BEST; falls back to text)
+--   HUD chrome (optional; programmatic fallback otherwise):
+--     hud/strip_top.png, hud/heart_full.png, hud/heart_empty.png,
+--     hud/bar_frame.png
 
 local M = {}
 
@@ -37,8 +42,6 @@ local function asset_path(relative)
     return RC.ASSETS_PATH .. "/" .. relative
 end
 
--- Cache: filename -> bool. Asset directory doesn't change at runtime, so
--- one io.open per file per session is enough.
 local exists_cache = {}
 function M.assetExists(relative)
     local cached = exists_cache[relative]
@@ -52,7 +55,7 @@ function M.assetExists(relative)
 end
 
 -- ---------------------------------------------------------------------------
--- Time / score formatting (also useful on its own — exported)
+-- Time formatting (also useful on its own — exported)
 -- ---------------------------------------------------------------------------
 function M.formatTime(frames)
     if type(frames) ~= "number" or frames < 0 then return "0:00.000" end
@@ -66,28 +69,31 @@ end
 -- ---------------------------------------------------------------------------
 -- Digit rendering
 -- ---------------------------------------------------------------------------
-local DIGIT_W = 16   -- pixel advance per digit when sprites exist
-local DIGIT_H = 24
-local FALLBACK_W = 8 -- gui.text approximate per-char advance
+-- The existing pixel-art set is named `_sSmall<N>blue.png` (23x29). We give
+-- each digit + separator a small horizontal advance; if the sprite is
+-- missing we fall through to gui.text so any character we haven't drawn
+-- art for still appears.
+local DIGIT_W = 14   -- tighter than the 23-px sprite width — digits overlap slightly for a kerned look
+local FALLBACK_W = 8
 
 local DIGIT_NAME = {
-    ["0"] = "d_0",  ["1"] = "d_1",  ["2"] = "d_2",  ["3"] = "d_3",
-    ["4"] = "d_4",  ["5"] = "d_5",  ["6"] = "d_6",  ["7"] = "d_7",
-    ["8"] = "d_8",  ["9"] = "d_9",
-    [":"] = "d_colon", ["."] = "d_dot",
-    ["/"] = "d_slash", ["-"] = "d_minus",
+    ["0"] = "_sSmall0blue", ["1"] = "_sSmall1blue", ["2"] = "_sSmall2blue",
+    ["3"] = "_sSmall3blue", ["4"] = "_sSmall4blue", ["5"] = "_sSmall5blue",
+    ["6"] = "_sSmall6blue", ["7"] = "_sSmall7blue", ["8"] = "_sSmall8blue",
+    ["9"] = "_sSmall9blue",
+    -- One separator sprite covers both colon and dot — looks the same at
+    -- this size and is what's currently in the asset set.
+    [":"] = "_sSmallSemiblue",
+    ["."] = "_sSmallSemiblue",
 }
 
--- Draw a string of digits + separators. Anything not in DIGIT_NAME (letters,
--- spaces, punctuation we haven't drawn yet) falls through to gui.text so the
--- caller never sees a hole.
 function M.drawDigits(x, y, str)
     str = tostring(str or "")
     local cx = x
     for i = 1, #str do
         local ch = str:sub(i, i)
         local glyph = DIGIT_NAME[ch]
-        local rel = glyph and ("digits/" .. glyph .. ".png")
+        local rel = glyph and (glyph .. ".png")
         if rel and M.assetExists(rel) then
             gui.drawImage(asset_path(rel), cx, y)
             cx = cx + DIGIT_W
@@ -102,7 +108,6 @@ function M.drawTime(x, y, frames)
     M.drawDigits(x, y, M.formatTime(frames))
 end
 
--- "5000 / 5000" style readout. Either argument may be nil.
 function M.drawScore(x, y, current, target)
     local s = tostring(current or 0)
     if target then s = s .. " / " .. tostring(target) end
@@ -110,19 +115,18 @@ function M.drawScore(x, y, current, target)
 end
 
 -- ---------------------------------------------------------------------------
--- Top HUD strip
+-- Top HUD strip (optional — only renders if the artist supplies it)
 -- ---------------------------------------------------------------------------
 function M.drawTopStrip()
     if M.assetExists("hud/strip_top.png") then
         gui.drawImage(asset_path("hud/strip_top.png"), 0, 0)
     end
-    -- No fallback: leave the playfield clean if the strip art isn't there.
 end
 
 -- ---------------------------------------------------------------------------
 -- Lives / hearts row
 -- ---------------------------------------------------------------------------
-local LIFE_ADVANCE = 14   -- 12px sprite + 2px gap
+local LIFE_ADVANCE = 14
 
 function M.drawLives(x, y, count, max)
     count = count or 0
@@ -139,16 +143,16 @@ function M.drawLives(x, y, count, max)
 end
 
 -- ---------------------------------------------------------------------------
--- Progress / HP bar
+-- Progress / HP bar (always renders programmatically; bar_frame.png if any
+-- is overlaid on top)
 -- ---------------------------------------------------------------------------
--- AARRGGBB. BizHawk gui.drawRectangle takes (x, y, w, h, lineColor, fillColor).
 local BAR_FILL_COLORS = {
-    hp     = 0xff10b981,  -- emerald
-    boss   = 0xffdc2626,  -- danger red
-    timer  = 0xfff59e0b,  -- amber
-    other  = 0xff6366f1,  -- indigo (default)
+    hp     = 0xff10b981,
+    boss   = 0xffdc2626,
+    timer  = 0xfff59e0b,
+    other  = 0xff6366f1,
 }
-local BAR_BG_COLOR = 0xa0000000   -- 60%-opaque black backing
+local BAR_BG_COLOR = 0xa0000000
 
 function M.drawBar(x, y, width, current, max, kind)
     width = math.max(width or 0, 4)
@@ -156,30 +160,37 @@ function M.drawBar(x, y, width, current, max, kind)
     local pct = (max and max > 0) and math.min(1, math.max(0, current / max)) or 0
     local inner_w = math.floor((width - 4) * pct)
 
-    -- Solid backing so the bar reads on any background.
     gui.drawRectangle(x, y, width, 8, BAR_BG_COLOR, BAR_BG_COLOR)
     if inner_w > 0 then
         gui.drawRectangle(x + 2, y + 2, inner_w, 4, fill_color, fill_color)
     end
-
-    -- Optional frame overlay if the artist supplies one.
     if M.assetExists("hud/bar_frame.png") then
         gui.drawImage(asset_path("hud/bar_frame.png"), x, y)
     end
 end
 
 -- ---------------------------------------------------------------------------
--- Key prompts
+-- Key prompts (24x24 sprites under keys/, fallback to "[X] Label" text)
 -- ---------------------------------------------------------------------------
-local KEY_ADVANCE = 20    -- 16px key + 4px gap before label
+local KEY_W = 24
+local KEY_GAP = 4
+
+-- Keyboard glyph filename uses the BizHawk input.get() name lowercased.
+-- We map a couple of friendlier aliases so callers can pass "ESC".
+local KEY_ALIAS = {
+    ["esc"]    = "escape",
+    ["return"] = "enter",
+}
 
 function M.drawKeyPrompt(x, y, key, label)
     key = tostring(key or "")
     label = label or ""
-    local rel = "keys/k_" .. key:lower() .. ".png"
+    local lower = key:lower()
+    lower = KEY_ALIAS[lower] or lower
+    local rel = "keys/k_" .. lower .. ".png"
     if M.assetExists(rel) then
         gui.drawImage(asset_path(rel), x, y)
-        if label ~= "" then gui.text(x + KEY_ADVANCE, y + 2, label) end
+        if label ~= "" then gui.text(x + KEY_W + KEY_GAP, y + 6, label) end
     else
         gui.text(x, y, "[" .. key .. "] " .. label)
     end
@@ -188,20 +199,19 @@ end
 -- ---------------------------------------------------------------------------
 -- Outcome banners
 -- ---------------------------------------------------------------------------
--- NES playfield is 256x240. Banners sit centered around y=80 by default;
--- pass y to override (e.g. for a complete + personal-best stack).
-local function draw_banner(rel, fallback_text, y)
-    y = y or 80
+-- The existing completed.png is a 256x240 full-screen overlay. We draw at
+-- (0, 0) when present so it covers the playfield.
+local function draw_banner_fullscreen(rel, fallback_text, fallback_y)
     if M.assetExists(rel) then
-        gui.drawImage(asset_path(rel), 0, y)
+        gui.drawImage(asset_path(rel), 0, 0)
     else
-        gui.text(80, y + 20, fallback_text)
+        gui.text(80, fallback_y or 100, fallback_text)
     end
 end
 
 M.banner = {}
-function M.banner.win(y)            draw_banner("banners/complete.png",      "CHALLENGE COMPLETE!", y) end
-function M.banner.fail(y)           draw_banner("banners/failed.png",        "CHALLENGE FAILED",    y) end
-function M.banner.personalBest(y)   draw_banner("banners/personal_best.png", "NEW BEST!",           y) end
+function M.banner.win()           draw_banner_fullscreen("completed.png",     "CHALLENGE COMPLETE!", 100) end
+function M.banner.fail()          draw_banner_fullscreen("failed.png",        "CHALLENGE FAILED",    100) end
+function M.banner.personalBest()  draw_banner_fullscreen("personal_best.png", "NEW BEST!",           120) end
 
 return M
