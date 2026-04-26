@@ -25,6 +25,11 @@ local ADDR = {
     HEARTS        = 0x0071,
     SUBWEAPON     = 0x015B,
     WHIP_LEVEL    = 0x0070,
+    -- Simon's state machine byte. Pit deaths don't drain HP, but they do
+    -- toggle this byte. We display it during play (debug overlay) so we
+    -- can identify the "dying from a fall" value and add it as a death
+    -- signal in a follow-up.
+    SIMON_STATE   = 0x046C,
     -- Mummy boss HP. The challenge ends when this reaches 0.
     BOSS_HEALTH   = 0x01A9,
 }
@@ -182,11 +187,19 @@ end
 local function play_round()
     local start_frame = emu.framecount()
     local prev_hp = read_u8(ADDR.HEALTH_REAL)
+    -- Track the unique values SIMON_STATE has held since the round started.
+    -- We log them to the BizHawk Lua console so the player can read off
+    -- whatever value appears during a pit death. Cap the set size so a
+    -- pathological game can't blow out the log.
+    local seen_states = {}
+    local seen_count = 0
+    local STATE_LOG_CAP = 32
 
     while true do
-        local simon_hp = read_u8(ADDR.HEALTH_REAL)
-        local boss_hp  = read_u8(ADDR.BOSS_HEALTH)
-        local elapsed  = emu.framecount() - start_frame
+        local simon_hp    = read_u8(ADDR.HEALTH_REAL)
+        local simon_state = read_u8(ADDR.SIMON_STATE)
+        local boss_hp     = read_u8(ADDR.BOSS_HEALTH)
+        local elapsed     = emu.framecount() - start_frame
 
         if boss_hp == 0 then
             play_asset_sound("challengecompleted.wav")
@@ -200,9 +213,18 @@ local function play_round()
         end
         prev_hp = simon_hp
 
+        if not seen_states[simon_state] and seen_count < STATE_LOG_CAP then
+            seen_states[simon_state] = true
+            seen_count = seen_count + 1
+            console.log(string.format(
+                "[bigbridge] new SIMON_STATE seen: 0x%02X (%d) at frame %d, hp=%d",
+                simon_state, simon_state, elapsed, simon_hp))
+        end
+
         gui.text(10, 10, "Time:  " .. format_frames(elapsed))
         gui.text(10, 25, string.format("HP:    %d / %d", simon_hp, FULL_HEALTH))
         gui.text(10, 40, "Mummy: " .. boss_hp)
+        gui.text(10, 55, string.format("State: 0x%02X", simon_state))
         emu.frameadvance()
     end
 end
