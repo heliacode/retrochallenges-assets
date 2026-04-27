@@ -78,18 +78,14 @@ challenge.run{
     end,
 
     hud = function(state)
-        local simon_hp = read_u8(HEALTH_REAL)
-        local boss_hp  = read_u8(BOSS_HEALTH)
-        local hearts   = read_u8(HEARTS)
-
-        gui.text(10,  6, "TIME")
-        hud.drawTime(48,  4, state.elapsed)
-        gui.text(10, 30, "HP")
-        hud.drawBar(28, 32, 70, simon_hp, FULL_HEALTH, "hp")
-        gui.text(10, 46, "HEARTS")
-        hud.drawDigits(58, 44, tostring(hearts))
-        gui.text(10, 70, "MEDUSA")
-        hud.drawDigits(58, 68, tostring(boss_hp))
+        -- Just the timer for this fight — Medusa's screen is too busy
+        -- (snake heads + statue eyes + Simon's whip arc) for a full HUD.
+        -- Translucent black backing so the digits read against any pixel
+        -- pattern that happens to be behind them.
+        --   digits draw 18x22 with 14px advance; "0:00.000" (7 glyphs)
+        --   spans ~102 px wide. Box pads 4px on each side.
+        gui.drawRectangle(6, 4, 110, 28, 0xc0000000, 0xc0000000)
+        hud.drawTime(10, 8, state.elapsed)
     end,
 
     result = function(state)
