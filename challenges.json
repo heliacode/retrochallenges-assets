@@ -34,13 +34,27 @@
           "estimatedTime": "1-3 minutes"
         }
       ]
+    },
+    {
+      "name": "Mega Man 2",
+      "description": "The Blue Bomber faces eight new Robot Masters and Dr. Wily's fortress",
+      "rom": "roms\\megaman2.nes",
+      "challenges": [
+        {
+          "name": "Metal Man Boss Fight",
+          "description": "Defeat Metal Man as fast as possible. Loaded out with full HP — die once and the run is over.",
+          "lua": "nes\\megaman2\\boss-metalman\\boss-metalman.lua",
+          "difficulty": "Medium",
+          "estimatedTime": "1-3 minutes"
+        }
+      ]
     }
   ],
   "metadata": {
-    "version": "1.2.0",
-    "lastUpdated": "2026-04-26T20:00:00Z",
-    "totalGames": 1,
-    "totalChallenges": 4,
+    "version": "1.3.0",
+    "lastUpdated": "2026-04-27T00:00:00Z",
+    "totalGames": 2,
+    "totalChallenges": 5,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"]
   }
 }
