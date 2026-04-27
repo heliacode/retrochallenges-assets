@@ -19,7 +19,7 @@ The framework can pin a challenge to a specific ROM via `expected_rom_hashes` in
 
 | Region | ROM filename | SHA1 (headerless) |
 |---|---|---|
-| USA | `Mega Man 2 (USA).nes` | _capture from your dump_ |
+| USA | `Mega Man 2 (USA).nes` | `2EC08F9341003DED125458DF8697CA5EF09D2209` |
 | JP | `Rockman 2 - Dr. Wily no Nazo (Japan).nes` | _capture from your dump_ |
 | EUR | `Mega Man 2 (Europe).nes` | _capture from your dump_ |
 

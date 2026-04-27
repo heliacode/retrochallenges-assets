@@ -50,6 +50,7 @@ local prev_lives = 0
 -- ---------------------------------------------------------------------------
 challenge.run{
     savestate    = "savestates/medusa-boss-fight.state",
+    expected_rom_hashes = { "3DCB69A8C861C041AEB56C04E39ADF6D332EDA3A" },  -- Castlevania (USA)
     countdown    = true,
     freeze_game  = freeze_game,
     release_game = release_game,
