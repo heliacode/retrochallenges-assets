@@ -8,6 +8,25 @@ Working reference for authoring RetroChallenges challenges on Mega Man 2 (US/JP 
 
 All addresses below are confirmed unless explicitly marked. Constant names use the disassembly's labels.
 
+## ROM hash verification
+
+The framework can pin a challenge to a specific ROM via `expected_rom_hashes` in the challenge spec. BizHawk reports the **headerless SHA1** via `gameinfo.getromhash()`, matching the No-Intro convention.
+
+`RcChallenge` logs `[RC] ROM SHA1: <HEX>` to BizHawk's Lua console on every launch. Run any Mega Man 2 challenge once with your real ROM, copy the value, and paste it into both:
+
+1. The challenge file's `expected_rom_hashes` array.
+2. This table, keyed by region:
+
+| Region | ROM filename | SHA1 (headerless) |
+|---|---|---|
+| USA | `Mega Man 2 (USA).nes` | _capture from your dump_ |
+| JP | `Rockman 2 - Dr. Wily no Nazo (Japan).nes` | _capture from your dump_ |
+| EUR | `Mega Man 2 (Europe).nes` | _capture from your dump_ |
+
+> The RAM layout in this document is verified against **the US release**. The JP version has minor menu / text differences but the same RAM map; the EUR release ships at PAL clock with timing differences that may make speedrun comparisons unfair across regions.
+
+Cart code: NES-MW (US), CAP-MW-NES (JP). Mapper 1 (MMC1). The US release has a damage-halved "Normal" mode (`$00CB = 0x01`) unique to it; pin to `0x00` in `setup` to standardize damage across regions.
+
 ---
 
 ## Player

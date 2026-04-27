@@ -70,6 +70,15 @@ end
 challenge.run{
     savestate = "savestates/<challenge>.state",
 
+    -- Optional: pin the ROM. The framework logs gameinfo.getromhash() on
+    -- every launch — copy your ROM's SHA1 from the BizHawk Lua console
+    -- the first time the challenge runs and paste it here. Multiple
+    -- entries are allowed (e.g. a US + JP rev that both have the same
+    -- RAM layout). Leave empty to skip the check.
+    expected_rom_hashes = {
+        -- "ABCDEF...",
+    },
+
     setup = function(state)
         -- Re-run on every (re)start. Write any starting RAM state here:
         -- write_u8(ADDR.HEARTS, 12)

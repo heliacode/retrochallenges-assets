@@ -19,14 +19,18 @@
 --   local read_u8 = memory.read_u8 or memory.readbyte
 --
 --   challenge.run{
---       savestate = "savestates/foo.state",
---       win       = function() return read_u8(0x07FC) >= 0x50 end,
---       hud       = function(state)
+--       savestate           = "savestates/foo.state",
+--       expected_rom_hashes = { "8DC0FC30FF8A7BBDFE5172956C3F88141B7DBD45" },  -- optional
+--       win                 = function() return read_u8(0x07FC) >= 0x50 end,
+--       hud                 = function(state)
 --           hud.drawTime (48,  4, state.elapsed)
 --           hud.drawScore(48, 22, read_u8(0x07FC), 0x50)
 --       end,
---       result    = function(state) return { score = read_u8(0x07FC), completionTime = state.elapsed } end,
+--       result              = function(state) return { score = read_u8(0x07FC), completionTime = state.elapsed } end,
 --   }
+--
+-- The framework logs gameinfo.getromhash() to BizHawk's Lua console on
+-- every launch so authors can capture canonical values for new challenges.
 --
 -- Per-game freeze tricks (Castlevania's USER_PAUSED=1 write, etc.) are
 -- per-game state; the framework calls into freeze_game / release_game
@@ -80,6 +84,43 @@ local function r_pressed()
     local edge = now and not _prev_r
     _prev_r = now
     return edge
+end
+
+-- ---------------------------------------------------------------------------
+-- ROM hash verification
+-- ---------------------------------------------------------------------------
+-- Returns the loaded ROM's SHA1 hash (uppercase hex), or nil if BizHawk's
+-- gameinfo API isn't available. BizHawk hashes the headerless content,
+-- which is the same convention No-Intro uses, so a value here can be
+-- pasted into a challenge's expected_rom_hashes list verbatim.
+local function get_rom_hash()
+    if not gameinfo or not gameinfo.getromhash then return nil end
+    local ok, h = pcall(gameinfo.getromhash)
+    if not ok or not h or h == "" then return nil end
+    return h:upper()
+end
+
+-- True if the loaded ROM is in the spec's allowlist (or no allowlist
+-- given). Always logs the actual hash on first call so authors can
+-- capture and pin canonical values for new challenges.
+local _hash_logged = false
+local function verify_rom_hash(spec)
+    local actual = get_rom_hash()
+    if not _hash_logged then
+        if actual then
+            console.log("[RC] ROM SHA1: " .. actual)
+        else
+            console.log("[RC] ROM hash unavailable (gameinfo.getromhash missing)")
+        end
+        _hash_logged = true
+    end
+    local allow = spec.expected_rom_hashes
+    if not allow or #allow == 0 then return true end  -- not enforced
+    if not actual then return true end                -- can't enforce, don't fail-close
+    for _, expected in ipairs(allow) do
+        if actual == tostring(expected):upper() then return true end
+    end
+    return false
 end
 
 -- ---------------------------------------------------------------------------
@@ -199,6 +240,22 @@ function M.run(spec_in)
         return
     end
     use_system_bus_domain()
+
+    -- ROM hash check (only enforced when spec.expected_rom_hashes is set).
+    -- Hangs on a friendly screen rather than running the challenge against
+    -- the wrong RAM map — far better than weird memory addresses appearing
+    -- to "kind of work" because of coincidental layout overlap.
+    if not verify_rom_hash(spec) then
+        local actual = get_rom_hash() or "?"
+        while true do
+            spec.freeze_game()
+            gui.text(10, 10, "Wrong ROM for this challenge.")
+            gui.text(10, 25, "Expected: " .. (spec.expected_rom_hashes[1] or "?"))
+            gui.text(10, 40, "Got:      " .. actual)
+            gui.text(10, 60, "Load the correct ROM in BizHawk and relaunch.")
+            emu.frameadvance()
+        end
+    end
 
     console.log(string.format(
         "RcChallenge: %s / %s — player: %s",
