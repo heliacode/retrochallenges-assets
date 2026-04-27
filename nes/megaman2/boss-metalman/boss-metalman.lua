@@ -35,7 +35,7 @@ local prev_lives = 0
 -- ---------------------------------------------------------------------------
 challenge.run{
     savestate           = "savestates/metalman-boss.state",
-    expected_rom_hashes = { "2EC08F9341003DED125458DF8697CA5EF09D2209" },  -- Mega Man 2 (USA)
+    expected_rom_hashes = { "2290D8D839A303219E9327EA1451C5EEA430F53D" },  -- Mega Man 2 (USA, iNES file SHA1)
 
     setup = function(state)
         write_u8(PLAYER_HP,      MAX_HP)

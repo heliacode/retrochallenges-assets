@@ -10,16 +10,16 @@ All addresses below are confirmed unless explicitly marked. Constant names use t
 
 ## ROM hash verification
 
-The framework can pin a challenge to a specific ROM via `expected_rom_hashes` in the challenge spec. BizHawk reports the **headerless SHA1** via `gameinfo.getromhash()`, matching the No-Intro convention.
+The framework can pin a challenge to a specific ROM via `expected_rom_hashes` in the challenge spec. BizHawk reports the **SHA1 of the iNES file (header included)** via `gameinfo.getromhash()` — this is the file-level hash, not the No-Intro / GoodNES headerless convention.
 
 `RcChallenge` logs `[RC] ROM SHA1: <HEX>` to BizHawk's Lua console on every launch. Run any Mega Man 2 challenge once with your real ROM, copy the value, and paste it into both:
 
 1. The challenge file's `expected_rom_hashes` array.
 2. This table, keyed by region:
 
-| Region | ROM filename | SHA1 (headerless) |
+| Region | ROM filename | SHA1 (iNES file) |
 |---|---|---|
-| USA | `Mega Man 2 (USA).nes` | `2EC08F9341003DED125458DF8697CA5EF09D2209` |
+| USA | `Mega Man 2 (USA).nes` | `2290D8D839A303219E9327EA1451C5EEA430F53D` |
 | JP | `Rockman 2 - Dr. Wily no Nazo (Japan).nes` | _capture from your dump_ |
 | EUR | `Mega Man 2 (Europe).nes` | _capture from your dump_ |
 
