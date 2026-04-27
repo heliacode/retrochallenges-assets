@@ -1,0 +1,10 @@
+# Treat emulator movie files as binary so git's CRLF normalization
+# doesn't corrupt the line-per-frame input logs FCEUX/BizHawk replay.
+*.fm2 binary
+*.fm3 binary
+*.bk2 binary
+*.fcm binary
+
+# Savestates are zip-based binary blobs; keep them untouched too.
+*.state binary
+*.State binary
