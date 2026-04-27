@@ -53,7 +53,7 @@ end
 -- ---------------------------------------------------------------------------
 challenge.run{
     savestate    = "savestates/5000pts.state",
-    expected_rom_hashes = { "3DCB69A8C861C041AEB56C04E39ADF6D332EDA3A" },  -- Castlevania (USA)
+    expected_rom_hashes = { "7A20C44F302FB2F1B7ADFFA6B619E3E1CAE7B546" },  -- Castlevania (USA, iNES file SHA1)
     countdown    = true,
     freeze_game  = freeze_game,
     release_game = release_game,

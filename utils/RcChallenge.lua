@@ -90,9 +90,10 @@ end
 -- ROM hash verification
 -- ---------------------------------------------------------------------------
 -- Returns the loaded ROM's SHA1 hash (uppercase hex), or nil if BizHawk's
--- gameinfo API isn't available. BizHawk hashes the headerless content,
--- which is the same convention No-Intro uses, so a value here can be
--- pasted into a challenge's expected_rom_hashes list verbatim.
+-- gameinfo API isn't available. BizHawk hashes the iNES file with its
+-- 16-byte header included — this is NOT the No-Intro / GoodNES headerless
+-- convention. The value printed to the Lua console can be pasted directly
+-- into a challenge's expected_rom_hashes list as-is.
 local function get_rom_hash()
     if not gameinfo or not gameinfo.getromhash then return nil end
     local ok, h = pcall(gameinfo.getromhash)
@@ -222,17 +223,18 @@ end
 function M.run(spec_in)
     -- Defaults / spec normalization
     local spec = {
-        savestate         = assert(spec_in.savestate, "RcChallenge: spec.savestate is required"),
-        win               = assert(spec_in.win,       "RcChallenge: spec.win is required"),
-        fail              = spec_in.fail              or always_false,
-        setup             = spec_in.setup             or noop,
-        countdown         = (spec_in.countdown ~= false),  -- default true
-        hud               = spec_in.hud               or noop,
-        on_frame          = spec_in.on_frame          or noop,
-        result            = spec_in.result            or function() return {} end,
-        freeze_game       = spec_in.freeze_game       or noop,
-        release_game      = spec_in.release_game      or noop,
-        play_on_frames    = spec_in.play_on_frames    or 60,
+        savestate           = assert(spec_in.savestate, "RcChallenge: spec.savestate is required"),
+        win                 = assert(spec_in.win,       "RcChallenge: spec.win is required"),
+        fail                = spec_in.fail              or always_false,
+        setup               = spec_in.setup             or noop,
+        countdown           = (spec_in.countdown ~= false),  -- default true
+        hud                 = spec_in.hud               or noop,
+        on_frame            = spec_in.on_frame          or noop,
+        result              = spec_in.result            or function() return {} end,
+        freeze_game         = spec_in.freeze_game       or noop,
+        release_game        = spec_in.release_game      or noop,
+        play_on_frames      = spec_in.play_on_frames    or 60,
+        expected_rom_hashes = spec_in.expected_rom_hashes,
     }
 
     if not memory or not (memory.read_u8 or memory.readbyte) then
@@ -262,20 +264,36 @@ function M.run(spec_in)
         RC.GAME or "?", RC.CHALLENGE_NAME or "?", RC.USERNAME or "?"))
 
     local function load_savestate_or_show_missing()
-        local ok = pcall(function() savestate.load(spec.savestate) end)
-        if ok then
-            console.log("Savestate loaded: " .. spec.savestate)
-            return true
+        -- BizHawk's savestate.load() prints "could not find file: ..." but
+        -- doesn't raise a Lua error, so pcall always returns ok=true. Pre-
+        -- check existence ourselves before handing off, otherwise the
+        -- challenge proceeds against power-on RAM and the win predicate
+        -- can fire instantly on uninitialized memory (we hit a 0-frame
+        -- bogus completion submission this way once already).
+        local f = io.open(spec.savestate, "rb")
+        if f then f:close() else
+            while true do
+                spec.freeze_game()
+                gui.text(10, 10, "Savestate missing for this challenge.")
+                gui.text(10, 25, "Reinstall challenge assets, then press R.")
+                gui.text(10, 45, "Path: " .. spec.savestate)
+                if r_pressed() then return false end
+                emu.frameadvance()
+            end
         end
-        -- Hold on a missing-savestate screen until R is pressed (in case
-        -- the player just launched without first downloading assets).
-        while true do
-            spec.freeze_game()
-            gui.text(10, 10, "Savestate missing for this challenge.")
-            gui.text(10, 25, "Reinstall challenge assets, then press R.")
-            if r_pressed() then return false end
-            emu.frameadvance()
+        local ok, err = pcall(function() savestate.load(spec.savestate) end)
+        if not ok then
+            console.log("RcChallenge: savestate.load raised: " .. tostring(err))
+            while true do
+                spec.freeze_game()
+                gui.text(10, 10, "Savestate failed to load.")
+                gui.text(10, 25, tostring(err or "(unknown error)"))
+                if r_pressed() then return false end
+                emu.frameadvance()
+            end
         end
+        console.log("Savestate loaded: " .. spec.savestate)
+        return true
     end
 
     local attempt = 0
@@ -309,6 +327,26 @@ function M.run(spec_in)
             -- immediately (or hits R) during the post-win delay.
             local payload = spec.result(state) or {}
             payload.completionTime = payload.completionTime or state.elapsed
+            -- Sanity guard: refuse to submit completions that fired with no
+            -- elapsed gameplay. This means the win predicate matched on the
+            -- savestate's first frame — usually because the savestate was
+            -- missing and we ran against power-on RAM (uninitialized bytes
+            -- happen to satisfy "boss_hp == 0"). Still show the player a
+            -- screen so they understand what happened.
+            if (payload.completionTime or 0) <= 0 then
+                console.log("RcChallenge: refusing to submit 0-frame completion — likely a missing-savestate / wrong-RAM win-predicate trigger.")
+                while true do
+                    spec.freeze_game()
+                    gui.text(10, 10, "Win predicate fired on frame 0.")
+                    gui.text(10, 25, "Most likely the savestate didn't load")
+                    gui.text(10, 40, "and uninitialized RAM happened to")
+                    gui.text(10, 55, "satisfy the win condition.")
+                    gui.text(10, 80, "Run was NOT submitted. Press R to retry.")
+                    if r_pressed() then break end
+                    emu.frameadvance()
+                end
+                goto continue
+            end
             safe_play_sound("challengecompleted.wav")
             if RC.report_completion then RC.report_completion(payload) end
 
