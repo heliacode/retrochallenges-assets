@@ -142,6 +142,12 @@ local function play_countdown(spec)
         if step.tick then safe_play_sound("tock.wav") end
         for _ = 1, step.frames do
             spec.freeze_game()
+            -- Belt-and-suspenders input neutralization: per-game
+            -- freeze_game callbacks usually do this themselves, but
+            -- games without a documented freeze byte (DK NES, etc.)
+            -- have a no-op freeze_game and would let the player move
+            -- during the countdown otherwise. Cheap to do unconditionally.
+            joypad.set({}, 1)
             if asset_exists(step.name) then draw_asset(step.name) end
             if r_pressed() then return true end
             emu.frameadvance()
