@@ -53,15 +53,22 @@
           "lua": "nes\\megaman2\\metalman-quick-only\\metalman-quick-only.lua",
           "difficulty": "Hard",
           "estimatedTime": "1-3 minutes"
+        },
+        {
+          "name": "Air Man — Low HP Clutch",
+          "description": "Mega Man enters the boss room at 50% HP. Take down Air Man without dying. Buster only, no margin for error.",
+          "lua": "nes\\megaman2\\airman-low-hp\\airman-low-hp.lua",
+          "difficulty": "Hard",
+          "estimatedTime": "1-3 minutes"
         }
       ]
     }
   ],
   "metadata": {
-    "version": "1.4.1",
-    "lastUpdated": "2026-04-28T20:00:00Z",
+    "version": "1.5.0",
+    "lastUpdated": "2026-04-28T22:00:00Z",
     "totalGames": 2,
-    "totalChallenges": 6,
+    "totalChallenges": 7,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"]
   }
 }
