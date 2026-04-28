@@ -7,7 +7,8 @@
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
 
-local read_u8 = memory.read_u8 or memory.readbyte
+local read_u8  = memory.read_u8  or memory.readbyte
+local write_u8 = memory.write_u8 or memory.writebyte
 
 -- ---------------------------------------------------------------------------
 -- Memory map (NES Donkey Kong, USA)
@@ -19,8 +20,27 @@ local SCORE_MID = 0x0026  -- BCD: middle two digits (digits 4,3)
 local SCORE_LO = 0x0027   -- BCD: low two digits (digits 2,1)
 local LIVES    = 0x0055   -- "Marios remaining" (Data Crystal annotates "graphic only";
                           -- still decrements on death for our universal-death pattern)
+local GAME_CONTROL_FLAG = 0x004F  -- 0 = gameplay frozen, non-zero = running.
+                                  -- Cited: RussianManSMWC/Donkey-Kong-NES-Disassembly,
+                                  -- Defines.asm "GameControlFlag = $4F ; if set to 0,
+                                  -- freeze gameplay" + main loop gate at ~$CB4A.
 
 local TARGET_SCORE = 2000
+
+-- ---------------------------------------------------------------------------
+-- Freeze trick: GameControlFlag at $004F gates the main gameplay update.
+-- 0 halts Mario / barrels / Kong / timers; renderer keeps running so our
+-- banner stays drawn. Inverted polarity from Castlevania ($0022 = 1 means
+-- paused) — DK pauses on ZERO.
+-- ---------------------------------------------------------------------------
+local function freeze_game()
+    write_u8(GAME_CONTROL_FLAG, 0)
+    joypad.set({}, 1)
+end
+
+local function release_game()
+    write_u8(GAME_CONTROL_FLAG, 1)
+end
 
 -- ---------------------------------------------------------------------------
 -- Score decode. Each byte holds two BCD digits (high nibble = leading digit).
@@ -45,6 +65,9 @@ local prev_lives = 0
 challenge.run{
     savestate           = "savestates/2000pts.state",
     expected_rom_hashes = { "D8DFACBFEC34CDC871D73C901811551FE1706923" },  -- Donkey Kong (NES, USA, iNES file SHA1)
+
+    freeze_game  = freeze_game,
+    release_game = release_game,
 
     setup = function(state)
         emu.frameadvance()
