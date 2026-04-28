@@ -25,6 +25,21 @@ local UNLOCKED_WEAPONS = 0x009A
 local AMMO_QUICK       = 0x00A0
 local DIFFICULTY       = 0x00CB
 
+-- Sprite palette 0 (player + own projectiles share it). The pause-
+-- menu weapon-switch handler runs `weapon_palette_copy` (bank0F
+-- $D2ED) which writes these three bytes from a per-weapon table.
+-- Skipping that routine leaves Mega Man + the boomerang sprite
+-- rendered against buster colors — boomerang tile pixels don't
+-- shape correctly, looking like a "Y". We mirror the routine.
+local PAL_SPRITE_1     = 0x0367   -- color 1 (outline)
+local PAL_SPRITE_2     = 0x0368   -- color 2 (highlight)
+local PAL_SPRITE_3     = 0x0369   -- color 3 (body)
+-- Quick Boomerang (ID 5) palette per weapon_palette_data[5*4+1..3]
+-- in bank0F:2785 of the ca65 disassembly.
+local QUICK_PAL_1 = 0x0F   -- black
+local QUICK_PAL_2 = 0x34   -- peach
+local QUICK_PAL_3 = 0x25   -- pink
+
 local MAX_HP                  = 0x1C   -- 28
 local WEAPON_QUICK_BOOMERANG  = 0x05
 local NORMAL_DIFFICULTY       = 0x00
@@ -46,17 +61,24 @@ challenge.run{
         write_u8(UNLOCKED_WEAPONS, 0xFF)               -- all weapons unlocked so engine accepts the write
         write_u8(AMMO_QUICK,       MAX_HP)             -- start with max ammo (28)
         write_u8(CURRENT_WEAPON,   WEAPON_QUICK_BOOMERANG)
+        write_u8(PAL_SPRITE_1,     QUICK_PAL_1)
+        write_u8(PAL_SPRITE_2,     QUICK_PAL_2)
+        write_u8(PAL_SPRITE_3,     QUICK_PAL_3)
         write_u8(DIFFICULTY,       NORMAL_DIFFICULTY)
         emu.frameadvance()
         prev_lives = read_u8(LIVES)
     end,
 
-    -- Lock the weapon AND refill the ammo every frame. Pause-menu
-    -- switching reverts immediately, and ammo never depletes — so
-    -- the only failure mode is dying.
+    -- Lock the weapon, refill the ammo, and force the sprite palette
+    -- back to Quick Boomerang's pink-on-peach every frame. The engine
+    -- writes palette_sprite when entities take damage / on transitions
+    -- so we re-pin every tick to be safe.
     on_frame = function(state)
         write_u8(CURRENT_WEAPON, WEAPON_QUICK_BOOMERANG)
         write_u8(AMMO_QUICK,     MAX_HP)
+        write_u8(PAL_SPRITE_1,   QUICK_PAL_1)
+        write_u8(PAL_SPRITE_2,   QUICK_PAL_2)
+        write_u8(PAL_SPRITE_3,   QUICK_PAL_3)
     end,
 
     win = function() return read_u8(BOSS_HP) == 0 end,
