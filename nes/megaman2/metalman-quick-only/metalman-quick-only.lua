@@ -24,6 +24,19 @@ local CURRENT_WEAPON   = 0x00A9
 local UNLOCKED_WEAPONS = 0x009A
 local AMMO_QUICK       = 0x00A0
 local DIFFICULTY       = 0x00CB
+local GAME_MODE        = 0x00AA   -- bit 2 = "pause entities" — see RAM.md
+
+-- Freeze trick: write 0x04 to game_mode to set bit 2 — entity_update_dispatch
+-- short-circuits, so AI / physics / projectiles / animations all halt while
+-- the renderer keeps drawing our banner. 0x00 resumes.
+local function freeze_game()
+    write_u8(GAME_MODE, 0x04)
+    joypad.set({}, 1)
+end
+
+local function release_game()
+    write_u8(GAME_MODE, 0x00)
+end
 
 -- Sprite palette 0 (player + own projectiles share it). The pause-
 -- menu weapon-switch handler runs `weapon_palette_copy` (bank0F
@@ -55,6 +68,9 @@ local prev_lives = 0
 challenge.run{
     savestate           = "savestates/metalman-quick-only.state",
     expected_rom_hashes = { "2290D8D839A303219E9327EA1451C5EEA430F53D" },  -- Mega Man 2 (USA, iNES file SHA1)
+
+    freeze_game  = freeze_game,
+    release_game = release_game,
 
     setup = function(state)
         write_u8(PLAYER_HP,        MAX_HP)

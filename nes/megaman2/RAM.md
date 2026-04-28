@@ -163,6 +163,7 @@ Max ammo = `MAX_HP = 0x1C` (28).
 |---|---|---|---|
 | `$002A` | `current_stage` | **Current stage index** (range `0x00–0x0D`) | See full mapping below. Set this in `setup` to "warp" to a stage, but you also need the engine to be in a state that respects the change — testing required. |
 | `$002C` | `game_substate` | Game sub-state | Includes weapon-select state. Useful to gate things on "is the player actually playing right now". |
+| `$00AA` | `game_mode` | Engine dispatch mode + pause flag | **Bit 2 = "pause entities".** Write `0x04` to halt all AI / physics / projectiles / animations while the renderer keeps drawing — equivalent of Castlevania's `USER_PAUSED`. Write `0x00` to resume. Cited: `bank0E_game_engine.asm:755-758` (entity_update_dispatch short-circuits when `game_mode AND 0x04`). |
 | `$0038` | `current_screen` | Current room/screen index within the stage | Increments as the player moves between screens. **Useful as a progress indicator** ("reached screen 5" etc.). |
 | `$0037` | `transition_type` | Room transition request | `0x00` = none, `bit0 set` = vertical, **`0x03` = entering boss room**. |
 | `$0029` | `current_bank` | Currently switched PRG bank | Each stage has a dedicated bank; can be a sanity check. |
