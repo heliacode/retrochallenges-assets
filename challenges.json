@@ -32,6 +32,13 @@
           "lua": "nes\\castlevania\\medusa-boss-fight\\medusa-boss-fight.lua",
           "difficulty": "Medium",
           "estimatedTime": "1-3 minutes"
+        },
+        {
+          "name": "Escape the Fish-People",
+          "description": "Simon's down to 1 bar of HP, mermen everywhere, and only one way out — up the stairs. Reach the next floor without dying.",
+          "lua": "nes\\castlevania\\escape-the-fish-people\\escape-the-fish-people.lua",
+          "difficulty": "Medium",
+          "estimatedTime": "1-3 minutes"
         }
       ]
     },
@@ -79,10 +86,10 @@
     }
   ],
   "metadata": {
-    "version": "1.6.0",
-    "lastUpdated": "2026-04-28T22:30:00Z",
+    "version": "1.7.0",
+    "lastUpdated": "2026-04-29T14:00:00Z",
     "totalGames": 3,
-    "totalChallenges": 8,
+    "totalChallenges": 9,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"]
   }
 }
