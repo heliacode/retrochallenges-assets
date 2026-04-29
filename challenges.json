@@ -76,8 +76,8 @@
           "estimatedTime": "1-3 minutes"
         },
         {
-          "name": "Quick Man — 5 Screens",
-          "description": "Survive five vertical scrolls of Quick Man's death-laser corridor. Full HP at start, but one careless drop and the lasers send you back to the title screen.",
+          "name": "QuickMan Stage fall part 1",
+          "description": "Part 1 of the descent. Survive five vertical scrolls of Quick Man's death-laser corridor. Full HP at start, but one careless drop and the lasers send you back to the title screen.",
           "lua": "nes\\megaman2\\quickman-level\\quickman-level.lua",
           "difficulty": "Hard",
           "estimatedTime": "1-3 minutes"
@@ -100,8 +100,8 @@
     }
   ],
   "metadata": {
-    "version": "1.9.0",
-    "lastUpdated": "2026-04-29T15:00:00Z",
+    "version": "1.9.1",
+    "lastUpdated": "2026-04-29T15:30:00Z",
     "totalGames": 3,
     "totalChallenges": 11,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"]
