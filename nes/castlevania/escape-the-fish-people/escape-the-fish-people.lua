@@ -46,10 +46,23 @@ local function release_game()
 end
 
 -- ---------------------------------------------------------------------------
--- Per-attempt state.
+-- Fish-people rain: 3 seconds in, sprites start raining from the top
+-- of the screen at random x positions and varying fall speeds. Pure
+-- visual harassment — doesn't touch the game state. Designed to
+-- obscure Simon's path to the stairs without affecting hitboxes.
 -- ---------------------------------------------------------------------------
-local prev_lives    = 0
+local RAIN_START_FRAMES     = 180   -- 3 sec at 60fps
+local SPAWN_INTERVAL_FRAMES = 4     -- a new fish every 4 frames = 15 spawns/sec
+local FALL_SPEED_MIN        = 2     -- px/frame
+local FALL_SPEED_MAX        = 4
+local FISH_SPRITE_W         = 16    -- approximate; lets us spawn the right edge correctly
+local SCREEN_W              = 256
+local SCREEN_H              = 240
+
+-- Per-attempt state.
+local prev_lives     = 0
 local floor_at_start = 0
+local fish_rain      = {}   -- list of { x, y, speed }
 
 -- ---------------------------------------------------------------------------
 -- Run the challenge
@@ -66,6 +79,31 @@ challenge.run{
         emu.frameadvance()
         prev_lives     = read_u8(LIVES)
         floor_at_start = read_u8(FLOOR)
+        -- Reset rain state on retry so each attempt gets the fresh
+        -- 3-second grace window before the harassment starts.
+        fish_rain = {}
+        math.randomseed(os.time())
+    end,
+
+    on_frame = function(state)
+        if state.elapsed < RAIN_START_FRAMES then return end
+        -- Spawn a new fish every SPAWN_INTERVAL_FRAMES at a random x
+        -- (allowed to peek off either edge so the strip looks organic).
+        if state.elapsed % SPAWN_INTERVAL_FRAMES == 0 then
+            table.insert(fish_rain, {
+                x     = math.random(-FISH_SPRITE_W, SCREEN_W),
+                y     = -FISH_SPRITE_W,
+                speed = math.random(FALL_SPEED_MIN, FALL_SPEED_MAX),
+            })
+        end
+        -- Update positions; reap anything past the bottom edge so the
+        -- list doesn't grow without bound.
+        for i = #fish_rain, 1, -1 do
+            fish_rain[i].y = fish_rain[i].y + fish_rain[i].speed
+            if fish_rain[i].y > SCREEN_H then
+                table.remove(fish_rain, i)
+            end
+        end
     end,
 
     win = function() return read_u8(FLOOR) > floor_at_start end,
@@ -78,6 +116,11 @@ challenge.run{
     end,
 
     hud = function(state)
+        -- Rain drawn first so the timer/HP overlay sits on top — the
+        -- player can still read their stats even mid-rain.
+        for _, fish in ipairs(fish_rain) do
+            gui.drawImage(RC.ASSETS_PATH .. "/fishpeople_sprite.png", fish.x, fish.y)
+        end
         gui.text(10, 6, "TIME")
         hud.drawTime(48, 4, state.elapsed)
         gui.text(10, 24, "HP")
