@@ -46,7 +46,20 @@ local function release_game()
 end
 
 -- ---------------------------------------------------------------------------
--- Fish-people rain: 3 seconds in, sprites start raining from the top
+-- Sound effect at the 1-second mark — telegraphs that something's
+-- about to go very wrong. Latched so retries get fresh playback.
+-- ---------------------------------------------------------------------------
+local SOUND_TRIGGER_FRAMES = 60   -- 1 sec at 60fps
+local sound_played = false
+
+local function safe_play_sound(name)
+    local ok_req, sp = pcall(require, "SoundPlayer")
+    if not ok_req or not sp then return end
+    pcall(sp.play, RC.ASSETS_PATH .. "/" .. name)
+end
+
+-- ---------------------------------------------------------------------------
+-- Fish-people rain: 2 seconds in, sprites start raining from the top
 -- of the screen at random x positions and varying fall speeds. Pure
 -- visual harassment — doesn't touch the game state. Designed to
 -- obscure Simon's path to the stairs without affecting hitboxes.
@@ -79,13 +92,19 @@ challenge.run{
         emu.frameadvance()
         prev_lives     = read_u8(LIVES)
         floor_at_start = read_u8(FLOOR)
-        -- Reset rain state on retry so each attempt gets the fresh
-        -- 3-second grace window before the harassment starts.
-        fish_rain = {}
+        -- Reset rain + sound state on retry so each attempt gets the
+        -- fresh sound at +1s and the rain at +2s.
+        fish_rain    = {}
+        sound_played = false
         math.randomseed(os.time())
     end,
 
     on_frame = function(state)
+        -- Sound trigger at +1s, fires once per attempt.
+        if not sound_played and state.elapsed >= SOUND_TRIGGER_FRAMES then
+            sound_played = true
+            safe_play_sound("mikumikuMiii.wav")
+        end
         if state.elapsed < RAIN_START_FRAMES then return end
         -- Spawn a new fish every SPAWN_INTERVAL_FRAMES at a random x
         -- (allowed to peek off either edge so the strip looks organic).
