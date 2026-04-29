@@ -1,8 +1,8 @@
 -- Mega Man 2 — QuickMan Stage fall part 2
--- Continuation of the death-laser corridor. Survive 10 vertical
--- screen transitions this time — twice the part-1 budget.
+-- Continuation of the death-laser corridor. Survive 8 vertical
+-- screen transitions this time.
 --
--- Win  = current_screen ($0038) has incremented by 10 from the
+-- Win  = current_screen ($0038) has incremented by 8 from the
 --        captured value.
 -- Fail = lives counter decrements (laser hits, pits, HP zero).
 --
@@ -23,7 +23,7 @@ local GAME_MODE      = 0x00AA   -- bit 2 = "pause entities"
 
 local MAX_HP             = 0x1C
 local NORMAL             = 0x00
-local SCREENS_TO_SURVIVE = 10
+local SCREENS_TO_SURVIVE = 8
 
 local function freeze_game()
     write_u8(GAME_MODE, 0x04)
