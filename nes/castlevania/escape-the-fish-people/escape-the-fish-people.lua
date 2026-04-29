@@ -29,8 +29,9 @@ local FLOOR        = 0x0046   -- Stair-floor counter; increments when Simon
 local HEALTH_REAL  = 0x0045
 
 -- "1 bar of HP left" — Simon's HP runs 0–64; the on-screen bar has 16
--- ticks at 4 HP each, so a quarter-bar (4 ticks visible) = 16 HP.
-local START_HP   = 0x10
+-- ticks at 4 HP each, so 1 visible tick = 4 HP. Brutal: most enemies
+-- one-shot Simon at this HP, hence the "Medium" rating leaning hard.
+local START_HP   = 0x04
 
 -- ---------------------------------------------------------------------------
 -- Game-specific freeze trick
