@@ -51,7 +51,7 @@ end
 -- visual harassment — doesn't touch the game state. Designed to
 -- obscure Simon's path to the stairs without affecting hitboxes.
 -- ---------------------------------------------------------------------------
-local RAIN_START_FRAMES     = 180   -- 3 sec at 60fps
+local RAIN_START_FRAMES     = 120   -- 2 sec at 60fps
 local SPAWN_INTERVAL_FRAMES = 4     -- a new fish every 4 frames = 15 spawns/sec
 local FALL_SPEED_MIN        = 2     -- px/frame
 local FALL_SPEED_MAX        = 4
