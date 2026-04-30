@@ -104,13 +104,8 @@ challenge.run{
     end,
 
     hud = function(state)
-        local simon_hp = read_u8(HEALTH_REAL)
-        gui.text(10,  6, "SCORE")
-        hud.drawScore(48,  4, read_score(), TARGET_SCORE)
-        gui.text(10, 28, "TIME")
-        hud.drawTime(48, 26, state.elapsed)
-        gui.text(10, 50, "HP")
-        hud.drawBar(28, 52, 70, simon_hp, FULL_HEALTH, "hp")
+        gui.text(10, 6, "TIME")
+        hud.drawTime(48, 4, state.elapsed)
     end,
 
     result = function(state)
