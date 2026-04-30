@@ -10,6 +10,7 @@
           "description": "Score at least 5000 points in a single playthrough",
           "lua": "nes\\castlevania\\5000pts\\5000pts.lua",
           "difficulty": "Easy",
+          "category": "score",
           "estimatedTime": "5-10 minutes",
           "grades": {
             "by": "time",
@@ -27,6 +28,7 @@
           "description": "Simon, small whip, no subweapon, 0 points. Score 10000 in the fleaman area — die or leave the stage and the run is over.",
           "lua": "nes\\castlevania\\get-10000-pts-fleaman\\get-10000-pts-fleaman.lua",
           "difficulty": "Medium",
+          "category": "score",
           "estimatedTime": "2-5 minutes",
           "grades": {
             "by": "time",
@@ -44,6 +46,7 @@
           "description": "Cross the big bridge as fast as possible and defeat the mummy boss!",
           "lua": "nes\\castlevania\\bigbridge\\bigbridge.lua",
           "difficulty": "Easy",
+          "category": "speedrun",
           "estimatedTime": "3-4 minutes",
           "grades": {
             "by": "time",
@@ -61,6 +64,7 @@
           "description": "Defeat the bat boss using whip only — die once and the run is over.",
           "lua": "nes\\castlevania\\bat-boss-no-sub\\bat-boss-no-sub.lua",
           "difficulty": "Medium",
+          "category": "boss",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -78,6 +82,7 @@
           "description": "Defeat Medusa as fast as possible. Loaded out with 49 hearts, triple-shot holy water — die once and the run is over.",
           "lua": "nes\\castlevania\\medusa-boss-fight\\medusa-boss-fight.lua",
           "difficulty": "Medium",
+          "category": "boss",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -95,6 +100,7 @@
           "description": "Simon's down to 1 bar of HP, mermen everywhere, and only one way out — up the stairs. Reach the next floor without dying.",
           "lua": "nes\\castlevania\\escape-the-fish-people\\escape-the-fish-people.lua",
           "difficulty": "Medium",
+          "category": "survival",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -112,6 +118,7 @@
           "description": "Defeat the twin mummies with whip-only. Full HP, no subweapon — pure timing and positioning.",
           "lua": "nes\\castlevania\\mummy-boss-fight\\mummy-boss-fight.lua",
           "difficulty": "Medium",
+          "category": "boss",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -136,6 +143,7 @@
           "description": "Defeat Metal Man as fast as possible. Loaded out with full HP — die once and the run is over.",
           "lua": "nes\\megaman2\\boss-metalman\\boss-metalman.lua",
           "difficulty": "Medium",
+          "category": "boss",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -153,6 +161,7 @@
           "description": "Defeat Crash Man as fast as possible. Full HP, buster equipped — die once and the run is over.",
           "lua": "nes\\megaman2\\crashman-buster-only\\crashman-buster-only.lua",
           "difficulty": "Medium",
+          "category": "boss",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -170,6 +179,7 @@
           "description": "Defeat Metal Man using only Quick Boomerang. The weapon is locked and ammo refills every frame — but Quick deals 1 damage per hit and Metal Man has 28 HP. Pure aim and survival.",
           "lua": "nes\\megaman2\\metalman-quick-only\\metalman-quick-only.lua",
           "difficulty": "Hard",
+          "category": "boss",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -187,6 +197,7 @@
           "description": "Mega Man enters the boss room at 50% HP. Take down Air Man without dying. Buster only, no margin for error.",
           "lua": "nes\\megaman2\\airman-low-hp\\airman-low-hp.lua",
           "difficulty": "Hard",
+          "category": "boss",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -204,6 +215,7 @@
           "description": "Part 1 of the descent. Survive five vertical scrolls of Quick Man's death-laser corridor. Full HP at start, but one careless drop and the lasers send you back to the title screen.",
           "lua": "nes\\megaman2\\quickman-level\\quickman-level.lua",
           "difficulty": "Hard",
+          "category": "survival",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -221,6 +233,7 @@
           "description": "Part 2 of the descent. Eight vertical scrolls this time. The lasers know you're coming.",
           "lua": "nes\\megaman2\\quickman-fall-part-2\\quickman-fall-part-2.lua",
           "difficulty": "Hard",
+          "category": "survival",
           "estimatedTime": "2-5 minutes",
           "grades": {
             "by": "time",
@@ -245,6 +258,7 @@
           "description": "Score 2000 points before running out of lives. Bonus points from grabbing the hammer and smashing barrels add up fast.",
           "lua": "nes\\donkeykong\\2000pts\\2000pts.lua",
           "difficulty": "Easy",
+          "category": "score",
           "estimatedTime": "1-3 minutes",
           "grades": {
             "by": "time",
@@ -261,11 +275,12 @@
     }
   ],
   "metadata": {
-    "version": "1.14.0",
-    "lastUpdated": "2026-04-30T13:00:00Z",
+    "version": "1.15.0",
+    "lastUpdated": "2026-04-30T14:00:00Z",
     "totalGames": 3,
     "totalChallenges": 14,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
+    "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
   }
 }
