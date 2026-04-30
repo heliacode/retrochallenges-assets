@@ -149,6 +149,23 @@
           }
         },
         {
+          "name": "Crash Man Boss Fight",
+          "description": "Defeat Crash Man as fast as possible. Full HP, buster equipped — die once and the run is over.",
+          "lua": "nes\\megaman2\\crashman-buster-only\\crashman-buster-only.lua",
+          "difficulty": "Medium",
+          "estimatedTime": "1-3 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":    600 },
+              { "grade": "SS",  "maxFrames":   1200 },
+              { "grade": "S",   "maxFrames":   2400 },
+              { "grade": "A",   "maxFrames":   3600 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
           "name": "Metal Man — Quick Boomerang Only (∞ ammo)",
           "description": "Defeat Metal Man using only Quick Boomerang. The weapon is locked and ammo refills every frame — but Quick deals 1 damage per hit and Metal Man has 28 HP. Pure aim and survival.",
           "lua": "nes\\megaman2\\metalman-quick-only\\metalman-quick-only.lua",
@@ -244,10 +261,10 @@
     }
   ],
   "metadata": {
-    "version": "1.13.0",
-    "lastUpdated": "2026-04-30T12:00:00Z",
+    "version": "1.14.0",
+    "lastUpdated": "2026-04-30T13:00:00Z",
     "totalGames": 3,
-    "totalChallenges": 13,
+    "totalChallenges": 14,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
   }
