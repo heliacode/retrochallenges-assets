@@ -249,6 +249,31 @@
       ]
     },
     {
+      "name": "Dragon Warrior",
+      "description": "The original NES JRPG — slay slimes, level up, save the princess, defeat the Dragonlord",
+      "rom": "roms\\dragonwarrior.nes",
+      "challenges": [
+        {
+          "name": "Get to Level 2",
+          "description": "Grind your way to Level 2. 7 XP needed. Die and the run is over (the king's resurrection counts as failure here).",
+          "lua": "nes\\dragonwarrior\\get-to-level-2\\get-to-level-2.lua",
+          "difficulty": "Easy",
+          "category": "speedrun",
+          "estimatedTime": "1-3 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   5400 },
+              { "grade": "SS",  "maxFrames":  10800 },
+              { "grade": "S",   "maxFrames":  18000 },
+              { "grade": "A",   "maxFrames":  36000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "Donkey Kong",
       "description": "The arcade classic — climb the girders, dodge the barrels, save Pauline",
       "rom": "roms\\donkeykong.nes",
@@ -275,10 +300,10 @@
     }
   ],
   "metadata": {
-    "version": "1.15.0",
-    "lastUpdated": "2026-04-30T14:00:00Z",
-    "totalGames": 3,
-    "totalChallenges": 14,
+    "version": "1.16.0",
+    "lastUpdated": "2026-04-30T15:00:00Z",
+    "totalGames": 4,
+    "totalChallenges": 15,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }

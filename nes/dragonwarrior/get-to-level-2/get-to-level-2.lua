@@ -1,0 +1,73 @@
+-- Dragon Warrior — Get to Level 2
+-- The genre-busting challenge: how fast can you grind 7 XP and ding
+-- Level 2? Slimes give 1 XP, Red Slimes 1, Drakees 2 — so 4-7 fights
+-- depending on what spawns. Death sends the hero back to Tantegel
+-- (HP rebuilds, no real penalty in vanilla), so the fail predicate
+-- catches the brief HP=0 window before that teleport fires.
+--
+-- Built on RcChallenge — savestate, countdown, win banner, leaderboard
+-- submission, and R-anywhere-to-retry come from the framework. Dragon
+-- Warrior is turn-based so we don't need a per-game freeze byte; the
+-- framework's input neutralization during banner phases is enough.
+
+local hud       = require("RcHud")
+local challenge = require("RcChallenge")
+
+local read_u8  = memory.read_u8  or memory.readbyte
+local read_u16 = memory.read_u16_le or function(addr)
+    return read_u8(addr) + read_u8(addr + 1) * 256
+end
+
+-- ---------------------------------------------------------------------------
+-- Memory map (US NES Dragon Warrior, both PRG0 and PRG1)
+-- See nes/dragonwarrior/dragonwarrior_raminfo.md for the full reference.
+-- ---------------------------------------------------------------------------
+local XP_LO       = 0x00BA   -- Experience, 16-bit LE: $BA + $BB << 8
+local CURRENT_HP  = 0x00C5
+local MAX_HP      = 0x00CA
+local PLAYER_LVL  = 0x00C7
+local MAP_ID      = 0x0045
+
+local TARGET_LEVEL = 2
+
+-- ---------------------------------------------------------------------------
+-- Run the challenge
+-- ---------------------------------------------------------------------------
+challenge.run{
+    savestate           = "savestates/get-to-level-2.state",
+    -- Both common USA dumps share the same RAM layout, so accept either.
+    expected_rom_hashes = {
+        "6A50CE57097332393E0E8751924FD56456EF083C",  -- PRG0 (original)
+        "1ECC63AAAC50A9612EAA8B69143858C3E48DD0AE",  -- PRG1 / Rev A
+    },
+    countdown           = true,
+
+    win = function() return read_u8(PLAYER_LVL) >= TARGET_LEVEL end,
+
+    -- HP=0 at $00C5 lasts several frames before the engine fades to
+    -- black and teleports the hero back to Tantegel. Per-frame polling
+    -- catches the window. (DW doesn't have lives, so the universal
+    -- "lives decrement" pattern from action games doesn't apply.)
+    fail = function() return read_u8(CURRENT_HP) == 0 end,
+
+    hud = function(state)
+        local lvl    = read_u8(PLAYER_LVL)
+        local xp     = read_u16(XP_LO)
+        local hp     = read_u8(CURRENT_HP)
+        local max_hp = read_u8(MAX_HP)
+        local mapid  = read_u8(MAP_ID)
+        gui.text(10,  6, "TIME")
+        hud.drawTime(48,  4, state.elapsed)
+        gui.text(10, 24, "LVL " .. lvl)
+        gui.text(70, 24, "XP "  .. xp .. "/7")
+        -- Clamp the HP display to MaxHP — at level-up, $00C5 can briefly
+        -- read above $00CA because HP is granted before MaxHP updates.
+        local shown_hp = (max_hp > 0 and hp > max_hp) and max_hp or hp
+        gui.text(10, 42, "HP "  .. shown_hp .. "/" .. max_hp)
+        gui.text(10, 60, "MAP " .. string.format("%02X", mapid))
+    end,
+
+    result = function(state)
+        return { completionTime = state.elapsed }
+    end,
+}
