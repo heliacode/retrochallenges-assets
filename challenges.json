@@ -23,6 +23,23 @@
           }
         },
         {
+          "name": "10000 Points — Fleaman Cavern",
+          "description": "Simon, small whip, no subweapon, 0 points. Score 10000 in the fleaman area — die or leave the stage and the run is over.",
+          "lua": "nes\\castlevania\\get-10000-pts-fleaman\\get-10000-pts-fleaman.lua",
+          "difficulty": "Medium",
+          "estimatedTime": "2-5 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   2400 },
+              { "grade": "SS",  "maxFrames":   4800 },
+              { "grade": "S",   "maxFrames":   9000 },
+              { "grade": "A",   "maxFrames":  14400 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
           "name": "Cross the Big Bridge!",
           "description": "Cross the big bridge as fast as possible and defeat the mummy boss!",
           "lua": "nes\\castlevania\\bigbridge\\bigbridge.lua",
@@ -227,10 +244,10 @@
     }
   ],
   "metadata": {
-    "version": "1.12.0",
-    "lastUpdated": "2026-04-30T10:00:00Z",
+    "version": "1.13.0",
+    "lastUpdated": "2026-04-30T12:00:00Z",
     "totalGames": 3,
-    "totalChallenges": 12,
+    "totalChallenges": 13,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
   }
