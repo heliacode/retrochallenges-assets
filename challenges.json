@@ -270,6 +270,24 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Escape the Cavern",
+          "description": "Level 1, no spells, 15 HP, 6 torches. Find your way out and step back onto the overworld. Death isn't a fail — it's just a long detour through Tantegel.",
+          "lua": "nes\\dragonwarrior\\escape-cavern-1\\escape-cavern-1.lua",
+          "difficulty": "Medium",
+          "category": "speedrun",
+          "estimatedTime": "1-3 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   3600 },
+              { "grade": "SS",  "maxFrames":   7200 },
+              { "grade": "S",   "maxFrames":  14400 },
+              { "grade": "A",   "maxFrames":  28800 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -300,10 +318,10 @@
     }
   ],
   "metadata": {
-    "version": "1.16.0",
-    "lastUpdated": "2026-04-30T15:00:00Z",
+    "version": "1.17.0",
+    "lastUpdated": "2026-05-01T15:00:00Z",
     "totalGames": 4,
-    "totalChallenges": 15,
+    "totalChallenges": 16,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
