@@ -41,21 +41,26 @@ local HURT_BIT      = 0x02   -- bit 1 of $00CE
 local HURTMORE_BIT  = 0x02   -- bit 1 of $00CF
 
 -- ---------------------------------------------------------------------------
--- DW is turn-based and lacks a "user paused" byte like Castlevania has.
--- But the NES APU keeps playing the overworld theme during banner phases,
--- which collides with the leaderboard's completion music. Writing 0 to
--- $4015 (APU status register, all-channels-disable) every frame the
--- framework calls freeze_game silences pulse1/pulse2/triangle/noise/DMC.
--- The game writes to $4015 itself when it wants to start a note; since
--- we run AFTER the game each frame, we win the race. As soon as we stop
--- muting, the game's next note-on naturally restores audio — no
--- release_game callback needed.
+-- Audio handling during banner phases. DW is turn-based and lacks a
+-- "user paused" byte like Castlevania has, so the game keeps animating
+-- the music engine under the win / fail banners — which collides with
+-- the leaderboard's completion music.
+--
+-- Writing 0 to $4015 (APU status, all-channels-disable) doesn't reliably
+-- beat NesHawk's audio engine to the punch each frame. Instead we drop
+-- to BizHawk's host-level sound toggle: client.SetSoundOn(false) cuts
+-- emulator audio entirely. release_game flips it back on so the next
+-- attempt's gameplay phase has its music. Both calls are wrapped in
+-- pcall so a missing API in some future BizHawk version just degrades
+-- gracefully (banner still draws; music just keeps playing).
 -- ---------------------------------------------------------------------------
-local APU_STATUS = 0x4015
-
 local function freeze_game()
-    write_u8(APU_STATUS, 0)
+    pcall(function() client.SetSoundOn(false) end)
     joypad.set({}, 1)
+end
+
+local function release_game()
+    pcall(function() client.SetSoundOn(true) end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -70,6 +75,7 @@ challenge.run{
     },
     countdown           = true,
     freeze_game         = freeze_game,
+    release_game        = release_game,
 
     -- Loadout: hand the hero 100 MP and the Hurt + Hurtmore spells so
     -- they can blast anything in the starting area. Hurtmore (5 MP per
