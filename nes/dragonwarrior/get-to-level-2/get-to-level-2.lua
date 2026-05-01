@@ -14,6 +14,7 @@ local hud       = require("RcHud")
 local challenge = require("RcChallenge")
 
 local read_u8  = memory.read_u8  or memory.readbyte
+local write_u8 = memory.write_u8 or memory.writebyte
 local read_u16 = memory.read_u16_le or function(addr)
     return read_u8(addr) + read_u8(addr + 1) * 256
 end
@@ -24,11 +25,20 @@ end
 -- ---------------------------------------------------------------------------
 local XP_LO       = 0x00BA   -- Experience, 16-bit LE: $BA + $BB << 8
 local CURRENT_HP  = 0x00C5
-local MAX_HP      = 0x00CA
+local CURRENT_MP  = 0x00C6
 local PLAYER_LVL  = 0x00C7
-local MAP_ID      = 0x0045
+local MAX_HP      = 0x00CA
+local MAX_MP      = 0x00CB
+-- Spells-learned bitfields. Bit 1 of $00CE = Hurt, bit 1 of $00CF = Hurtmore.
+-- We OR the bits into whatever the savestate had so the player keeps any
+-- other spells they were already carrying.
+local SPELLS_BASE = 0x00CE
+local SPELLS_EXT  = 0x00CF
 
-local TARGET_LEVEL = 2
+local TARGET_LEVEL  = 2
+local LOADOUT_MP    = 100
+local HURT_BIT      = 0x02   -- bit 1 of $00CE
+local HURTMORE_BIT  = 0x02   -- bit 1 of $00CF
 
 -- ---------------------------------------------------------------------------
 -- Run the challenge
@@ -41,6 +51,18 @@ challenge.run{
         "1ECC63AAAC50A9612EAA8B69143858C3E48DD0AE",  -- PRG1 / Rev A
     },
     countdown           = true,
+
+    -- Loadout: hand the hero 100 MP and the Hurt + Hurtmore spells so
+    -- they can blast anything in the starting area. Hurtmore (5 MP per
+    -- cast) one-shots slimes, red slimes, and drakees, so the run becomes
+    -- "find an enemy, press SPELL, repeat 4 times". Pure dumb fun.
+    -- Re-applied per attempt so retries always get the fresh loadout.
+    setup = function(state)
+        write_u8(MAX_MP,     LOADOUT_MP)
+        write_u8(CURRENT_MP, LOADOUT_MP)
+        write_u8(SPELLS_BASE, bit.bor(read_u8(SPELLS_BASE), HURT_BIT))
+        write_u8(SPELLS_EXT,  bit.bor(read_u8(SPELLS_EXT),  HURTMORE_BIT))
+    end,
 
     win = function() return read_u8(PLAYER_LVL) >= TARGET_LEVEL end,
 
@@ -55,7 +77,8 @@ challenge.run{
         local xp     = read_u16(XP_LO)
         local hp     = read_u8(CURRENT_HP)
         local max_hp = read_u8(MAX_HP)
-        local mapid  = read_u8(MAP_ID)
+        local mp     = read_u8(CURRENT_MP)
+        local max_mp = read_u8(MAX_MP)
         gui.text(10,  6, "TIME")
         hud.drawTime(48,  4, state.elapsed)
         gui.text(10, 24, "LVL " .. lvl)
@@ -64,7 +87,7 @@ challenge.run{
         -- read above $00CA because HP is granted before MaxHP updates.
         local shown_hp = (max_hp > 0 and hp > max_hp) and max_hp or hp
         gui.text(10, 42, "HP "  .. shown_hp .. "/" .. max_hp)
-        gui.text(10, 60, "MAP " .. string.format("%02X", mapid))
+        gui.text(10, 60, "MP "  .. mp .. "/" .. max_mp)
     end,
 
     result = function(state)
