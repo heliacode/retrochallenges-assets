@@ -49,12 +49,12 @@ end
 -- gui.drawLine so there's no PNG asset dependency.
 local SCREEN_W = 256
 local SCREEN_H = 240
-local RAIN_DROP_COUNT      = 60
-local RAIN_DROP_SPEED_MIN  = 4
-local RAIN_DROP_SPEED_MAX  = 9
-local RAIN_DROP_LENGTH     = 6
+local RAIN_DROP_COUNT      = 180   -- triple-density downpour
+local RAIN_DROP_SPEED_MIN  = 5
+local RAIN_DROP_SPEED_MAX  = 12
+local RAIN_DROP_LENGTH     = 8
 local RAIN_DROP_SLANT      = 2     -- horizontal pixels per streak length
-local RAIN_COLOR           = 0xC0AACCFF  -- ARGB, light blue at ~75% alpha
+local RAIN_COLOR           = 0xD0BFE0FF  -- ARGB, brighter blue, slightly more opaque
 local RAIN_START_FRAMES    = 60    -- 1 sec courtesy delay after countdown ends
 
 -- Per-attempt state — reset in setup so retries get a fresh-feeling
