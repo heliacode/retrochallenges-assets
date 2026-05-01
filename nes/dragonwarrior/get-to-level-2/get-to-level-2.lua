@@ -41,6 +41,24 @@ local HURT_BIT      = 0x02   -- bit 1 of $00CE
 local HURTMORE_BIT  = 0x02   -- bit 1 of $00CF
 
 -- ---------------------------------------------------------------------------
+-- DW is turn-based and lacks a "user paused" byte like Castlevania has.
+-- But the NES APU keeps playing the overworld theme during banner phases,
+-- which collides with the leaderboard's completion music. Writing 0 to
+-- $4015 (APU status register, all-channels-disable) every frame the
+-- framework calls freeze_game silences pulse1/pulse2/triangle/noise/DMC.
+-- The game writes to $4015 itself when it wants to start a note; since
+-- we run AFTER the game each frame, we win the race. As soon as we stop
+-- muting, the game's next note-on naturally restores audio — no
+-- release_game callback needed.
+-- ---------------------------------------------------------------------------
+local APU_STATUS = 0x4015
+
+local function freeze_game()
+    write_u8(APU_STATUS, 0)
+    joypad.set({}, 1)
+end
+
+-- ---------------------------------------------------------------------------
 -- Run the challenge
 -- ---------------------------------------------------------------------------
 challenge.run{
@@ -51,6 +69,7 @@ challenge.run{
         "1ECC63AAAC50A9612EAA8B69143858C3E48DD0AE",  -- PRG1 / Rev A
     },
     countdown           = true,
+    freeze_game         = freeze_game,
 
     -- Loadout: hand the hero 100 MP and the Hurt + Hurtmore spells so
     -- they can blast anything in the starting area. Hurtmore (5 MP per
