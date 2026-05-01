@@ -125,6 +125,23 @@ local function verify_rom_hash(spec)
 end
 
 -- ---------------------------------------------------------------------------
+-- Input neutralization for banner / countdown phases.
+-- joypad.set({}, 1) is a no-op override — physical controller input passes
+-- through. To actually BLOCK input we have to set every NES button to false
+-- explicitly. Bites turn-based games like Dragon Warrior that don't have a
+-- per-game freeze byte to halt the engine; without this the player can
+-- still walk around during the countdown and the win/fail banners.
+-- ---------------------------------------------------------------------------
+local NEUTRAL_NES_INPUT = {
+    A = false, B = false,
+    Up = false, Down = false, Left = false, Right = false,
+    Select = false, Start = false,
+}
+local function neutralize_input()
+    joypad.set(NEUTRAL_NES_INPUT, 1)
+end
+
+-- ---------------------------------------------------------------------------
 -- Internal: countdown
 -- ---------------------------------------------------------------------------
 local COUNTDOWN_STEPS = {
@@ -142,12 +159,11 @@ local function play_countdown(spec)
         if step.tick then safe_play_sound("tock.wav") end
         for _ = 1, step.frames do
             spec.freeze_game()
-            -- Belt-and-suspenders input neutralization: per-game
-            -- freeze_game callbacks usually do this themselves, but
-            -- games without a documented freeze byte (DK NES, etc.)
-            -- have a no-op freeze_game and would let the player move
-            -- during the countdown otherwise. Cheap to do unconditionally.
-            joypad.set({}, 1)
+            -- Force every NES button to false so a turn-based game
+            -- (Dragon Warrior, etc.) without a per-game freeze byte can't
+            -- accept input during the countdown. See neutralize_input
+            -- definition for why an empty-table set isn't enough.
+            neutralize_input()
             if asset_exists(step.name) then draw_asset(step.name) end
             if r_pressed() then return true end
             emu.frameadvance()
@@ -177,6 +193,7 @@ end
 local function show_complete_screen_forever(spec, payload, time_text)
     while true do
         spec.freeze_game()
+        neutralize_input()
         hud.banner.win()
         if payload.completionTime then gui.text(10, 200, "Final Time:  " .. time_text) end
         if payload.score then           gui.text(10, 220, "Final Score: " .. tostring(payload.score)) end
@@ -191,6 +208,7 @@ end
 local function show_failure_screen_forever(spec, time_text)
     while true do
         spec.freeze_game()
+        neutralize_input()
         hud.banner.fail()
         gui.text(10, 200, "Failed at: " .. time_text)
         hud.drawKeyPrompt(10, 220, "R", "Retry — or return to RetroChallenges")
@@ -257,6 +275,7 @@ function M.run(spec_in)
         local actual = get_rom_hash() or "?"
         while true do
             spec.freeze_game()
+            neutralize_input()
             gui.text(10, 10, "Wrong ROM for this challenge.")
             gui.text(10, 25, "Expected: " .. (spec.expected_rom_hashes[1] or "?"))
             gui.text(10, 40, "Got:      " .. actual)
@@ -280,6 +299,7 @@ function M.run(spec_in)
         if f then f:close() else
             while true do
                 spec.freeze_game()
+                neutralize_input()
                 gui.text(10, 10, "Savestate missing for this challenge.")
                 gui.text(10, 25, "Reinstall challenge assets, then press R.")
                 gui.text(10, 45, "Path: " .. spec.savestate)
@@ -292,6 +312,7 @@ function M.run(spec_in)
             console.log("RcChallenge: savestate.load raised: " .. tostring(err))
             while true do
                 spec.freeze_game()
+                neutralize_input()
                 gui.text(10, 10, "Savestate failed to load.")
                 gui.text(10, 25, tostring(err or "(unknown error)"))
                 if r_pressed() then return false end
@@ -343,6 +364,7 @@ function M.run(spec_in)
                 console.log("RcChallenge: refusing to submit 0-frame completion — likely a missing-savestate / wrong-RAM win-predicate trigger.")
                 while true do
                     spec.freeze_game()
+                    neutralize_input()
                     gui.text(10, 10, "Win predicate fired on frame 0.")
                     gui.text(10, 25, "Most likely the savestate didn't load")
                     gui.text(10, 40, "and uninitialized RAM happened to")

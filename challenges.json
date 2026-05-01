@@ -313,15 +313,33 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Finish Level 2 — In the Rain",
+          "description": "Clear the rivets stage as fast as you can — but the screen is pouring with rain after the countdown. Diagonal streaks make barrels and ladders harder to read at a glance. Die once and the run is over.",
+          "lua": "nes\\donkeykong\\finish-level-2\\finish-level-2.lua",
+          "difficulty": "Medium",
+          "category": "speedrun",
+          "estimatedTime": "1-3 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   2400 },
+              { "grade": "SS",  "maxFrames":   4800 },
+              { "grade": "S",   "maxFrames":   7200 },
+              { "grade": "A",   "maxFrames":  14400 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     }
   ],
   "metadata": {
-    "version": "1.17.0",
-    "lastUpdated": "2026-05-01T15:00:00Z",
+    "version": "1.18.0",
+    "lastUpdated": "2026-05-01T16:00:00Z",
     "totalGames": 4,
-    "totalChallenges": 16,
+    "totalChallenges": 17,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
