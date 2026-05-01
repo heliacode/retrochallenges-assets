@@ -22,11 +22,16 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- ---------------------------------------------------------------------------
 -- Memory map (NES Donkey Kong, USA)
 -- See nes/donkeykong/2000pts/2000pts.lua for sources.
--- $0053: Current Zone (1..3) — the address that advances when Mario
---        finishes a stage. Source: Data Crystal RAM map.
+-- $0053: Current Zone (1..3) — advances when Mario clears a stage.
+-- $0096: Mario's state — $FF = Dead. Flips the frame Mario takes a
+--        fatal hit, well before the death animation finishes; makes
+--        for snappier fail detection than watching the "lives remaining"
+--        counter at $0055 which Data Crystal flags as graphic-only.
+-- Source: Data Crystal RAM map.
 -- ---------------------------------------------------------------------------
-local LIVES             = 0x0055
 local CURRENT_ZONE      = 0x0053
+local MARIO_STATE       = 0x0096
+local MARIO_STATE_DEAD  = 0xFF
 local GAME_CONTROL_FLAG = 0x004F
 
 -- ---------------------------------------------------------------------------
@@ -58,8 +63,7 @@ local RAIN_COLOR           = 0xE0D8F0FF  -- ARGB, near-white blue, ~88% alpha
 local RAIN_START_FRAMES    = 60    -- 1 sec courtesy delay after countdown ends
 
 -- Per-attempt state — reset in setup so retries get a fresh-feeling
--- spawn pattern + the lives baseline for the death detector.
-local prev_lives    = 0
+-- spawn pattern + the zone baseline for the win detector.
 local start_zone    = 0
 local rain          = {}
 
@@ -105,7 +109,6 @@ challenge.run{
 
     setup = function(state)
         emu.frameadvance()
-        prev_lives = read_u8(LIVES)
         start_zone = read_u8(CURRENT_ZONE)
         math.randomseed(os.time())
         reset_rain()
@@ -118,12 +121,9 @@ challenge.run{
 
     win = function() return read_u8(CURRENT_ZONE) > start_zone end,
 
-    fail = function()
-        local now = read_u8(LIVES)
-        if now < prev_lives then return true end
-        prev_lives = now
-        return false
-    end,
+    -- Direct read of Mario's state byte: $FF = Dead, set the frame the
+    -- fatal hit lands. Snappier than the lives-decrement pattern.
+    fail = function() return read_u8(MARIO_STATE) == MARIO_STATE_DEAD end,
 
     hud = function(state)
         -- Rain drawn first so HUD overlays sit on top — the player can
