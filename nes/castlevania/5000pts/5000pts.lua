@@ -16,9 +16,15 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- ---------------------------------------------------------------------------
 -- Memory map (US NES release)
 -- ---------------------------------------------------------------------------
--- Score is three BCD bytes at 0x07FC. The six digits map to
--- 100000s + 10000s, 1000s + 100s, 10s + ones; the last digit is always
--- 0 in Castlevania so the displayed score is always a multiple of 10.
+-- Score is three BCD bytes, stored low-to-high:
+--   $07FC = 10s + 1s digit (units always 0 in Castlevania)
+--   $07FD = 1000s + 100s digit
+--   $07FE = 100000s + 10000s digit (also used by the engine for 1UP checks)
+--
+-- 5000 lives entirely in the middle byte ($07FD = 0x50) so this challenge
+-- works with either byte ordering, but get-10000-pts-fleaman exposed the
+-- earlier swap. Aligning here defensively in case scores cross into the
+-- high byte during an extended run.
 local SCORE_ADDR  = 0x07FC
 local TARGET_SCORE = 5000
 
@@ -33,9 +39,9 @@ local USER_PAUSED = 0x0022
 local function bcd_byte(b) return math.floor(b / 16) * 10 + (b % 16) end
 
 local function read_score()
-    local hi = bcd_byte(read_u8(SCORE_ADDR))
+    local lo = bcd_byte(read_u8(SCORE_ADDR))
     local mi = bcd_byte(read_u8(SCORE_ADDR + 1))
-    local lo = bcd_byte(read_u8(SCORE_ADDR + 2))
+    local hi = bcd_byte(read_u8(SCORE_ADDR + 2))
     return hi * 10000 + mi * 100 + lo
 end
 

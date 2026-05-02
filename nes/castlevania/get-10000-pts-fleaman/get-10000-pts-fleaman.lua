@@ -37,14 +37,22 @@ local NO_WEAPON      = 0x00
 local TARGET_SCORE   = 10000
 
 -- ---------------------------------------------------------------------------
--- Score is three BCD bytes — same layout as the 5000pts challenge.
+-- Score is three BCD bytes, stored low-to-high:
+--   $07FC = 10s + 1s digit  (units always 0 in Castlevania)
+--   $07FD = 1000s + 100s digit
+--   $07FE = 100000s + 10000s digit  (also used by the engine for 1UP checks)
+--
+-- The original 5000pts challenge had this swapped, but the bug never
+-- manifested at scores ≤ 9990 because the relevant digit lives in the
+-- middle byte ($07FD) which is identical in either ordering. 10k breaks
+-- past 9999 into the high byte and exposed the swap.
 -- ---------------------------------------------------------------------------
 local function bcd_byte(b) return math.floor(b / 16) * 10 + (b % 16) end
 
 local function read_score()
-    local hi = bcd_byte(read_u8(SCORE_ADDR))
+    local lo = bcd_byte(read_u8(SCORE_ADDR))
     local mi = bcd_byte(read_u8(SCORE_ADDR + 1))
-    local lo = bcd_byte(read_u8(SCORE_ADDR + 2))
+    local hi = bcd_byte(read_u8(SCORE_ADDR + 2))
     return hi * 10000 + mi * 100 + lo
 end
 
