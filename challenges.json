@@ -288,6 +288,24 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Rescue the Princess",
+          "description": "Level-30 hero, full kit. Slay the green dragon, free Gwaelin, and deliver her back to King Lorik in Tantegel. Die once and the run is over.",
+          "lua": "nes\\dragonwarrior\\rescue-the-princess\\rescue-the-princess.lua",
+          "difficulty": "Easy",
+          "category": "speedrun",
+          "estimatedTime": "2-5 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   5400 },
+              { "grade": "SS",  "maxFrames":  10800 },
+              { "grade": "S",   "maxFrames":  18000 },
+              { "grade": "A",   "maxFrames":  36000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -336,10 +354,10 @@
     }
   ],
   "metadata": {
-    "version": "1.18.0",
-    "lastUpdated": "2026-05-01T16:00:00Z",
+    "version": "1.19.0",
+    "lastUpdated": "2026-05-02T17:00:00Z",
     "totalGames": 4,
-    "totalChallenges": 17,
+    "totalChallenges": 18,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
