@@ -59,7 +59,12 @@ end
 -- ---------------------------------------------------------------------------
 function M.formatTime(frames)
     if type(frames) ~= "number" or frames < 0 then return "0:00.000" end
-    local total_ms = math.floor((frames / 60) * 1000)
+    -- Round-half-up to match JS's Math.round() in renderer/format.js and
+    -- src/lib/leaderboard.ts. Earlier this used math.floor which differed
+    -- by 1ms from the website / desktop banner displays for the same
+    -- frame count — so the same run could read 0:01.666 in BizHawk and
+    -- 0:01.667 on the leaderboard.
+    local total_ms = math.floor((frames / 60) * 1000 + 0.5)
     local m  = math.floor(total_ms / 60000)
     local s  = math.floor((total_ms % 60000) / 1000)
     local ms = total_ms % 1000

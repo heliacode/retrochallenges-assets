@@ -233,10 +233,18 @@ local function play_attempt(spec, attempt_index)
 
         if r_pressed() then return "retry", state end
         spec.on_frame(state)
+
+        -- HUD draws BEFORE win/fail. On the winning frame this means the
+        -- player sees the exact elapsed value that gets recorded as
+        -- completionTime — no off-by-one between the last on-screen
+        -- digit and the final time on the leaderboard. Costs one extra
+        -- gui.draw* call per attempt (the win-frame draw that the
+        -- previous loop order skipped). Worth it for honest UX.
+        spec.hud(state)
+
         if spec.win(state)  then return "win",  state end
         if spec.fail(state) then return "fail", state end
 
-        spec.hud(state)
         emu.frameadvance()
     end
 end
