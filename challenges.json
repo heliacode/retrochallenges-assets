@@ -4,6 +4,7 @@
       "name": "Castlevania",
       "description": "Classic vampire hunting action platformer",
       "rom" : "roms\\castlevania.nes",
+      "boxArtUrl": "https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System/master/Named_Boxarts/Castlevania%20(USA).png",
       "challenges": [
         {
           "name": "Get 5000 points!",
@@ -137,6 +138,7 @@
       "name": "Mega Man 2",
       "description": "The Blue Bomber faces eight new Robot Masters and Dr. Wily's fortress",
       "rom": "roms\\megaman2.nes",
+      "boxArtUrl": "https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System/master/Named_Boxarts/Mega%20Man%202%20(USA).png",
       "challenges": [
         {
           "name": "Metal Man Boss Fight",
@@ -252,6 +254,7 @@
       "name": "Dragon Warrior",
       "description": "The original NES JRPG — slay slimes, level up, save the princess, defeat the Dragonlord",
       "rom": "roms\\dragonwarrior.nes",
+      "boxArtUrl": "https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System/master/Named_Boxarts/Dragon%20Warrior%20(USA).png",
       "challenges": [
         {
           "name": "Get to Level 2",
@@ -313,6 +316,7 @@
       "name": "Donkey Kong",
       "description": "The arcade classic — climb the girders, dodge the barrels, save Pauline",
       "rom": "roms\\donkeykong.nes",
+      "boxArtUrl": "https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System/master/Named_Boxarts/Donkey%20Kong%20(World)%20(Rev%201).png",
       "challenges": [
         {
           "name": "Get 2000 points!",
@@ -354,8 +358,8 @@
     }
   ],
   "metadata": {
-    "version": "1.19.0",
-    "lastUpdated": "2026-05-02T17:00:00Z",
+    "version": "1.20.0",
+    "lastUpdated": "2026-05-02T18:00:00Z",
     "totalGames": 4,
     "totalChallenges": 18,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
