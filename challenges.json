@@ -247,6 +247,42 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Heat Man Boss Fight",
+          "description": "Defeat Heat Man as fast as possible. Full HP, buster only — die once and the run is over.",
+          "lua": "nes\\megaman2\\boss-heatman\\boss-heatman.lua",
+          "difficulty": "Medium",
+          "category": "boss",
+          "estimatedTime": "1-3 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":    600 },
+              { "grade": "SS",  "maxFrames":   1200 },
+              { "grade": "S",   "maxFrames":   2400 },
+              { "grade": "A",   "maxFrames":   3600 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
+          "name": "Heat Man — The Floor Is Lava",
+          "description": "Disappearing-block stretch over the instakill pit. Full HP, no subweapons, no Item-2 cheese. Reach the bottom of the descent ladder alive.",
+          "lua": "nes\\megaman2\\heatman-the-floor-is-lava\\heatman-the-floor-is-lava.lua",
+          "difficulty": "Hard",
+          "category": "survival",
+          "estimatedTime": "1-3 minutes",
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1800 },
+              { "grade": "SS",  "maxFrames":   3000 },
+              { "grade": "S",   "maxFrames":   4800 },
+              { "grade": "A",   "maxFrames":   7200 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -358,10 +394,10 @@
     }
   ],
   "metadata": {
-    "version": "1.20.0",
-    "lastUpdated": "2026-05-02T18:00:00Z",
+    "version": "1.21.0",
+    "lastUpdated": "2026-05-02T20:00:00Z",
     "totalGames": 4,
-    "totalChallenges": 18,
+    "totalChallenges": 20,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
