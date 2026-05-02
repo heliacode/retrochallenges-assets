@@ -27,12 +27,9 @@ local read_u8  = memory.read_u8  or memory.readbyte
 -- Memory map (US NES Dragon Warrior, both PRG0 and PRG1)
 -- See nes/dragonwarrior/dragonwarrior_raminfo.md for the full reference.
 -- ---------------------------------------------------------------------------
-local CURRENT_HP = 0x00C5
-local MAX_HP     = 0x00CA
+local CURRENT_HP  = 0x00C5
 local QUEST_FLAGS = 0x00DF   -- bit 0 = rescued princess (Gwaelin),
                              -- bit 1 = returned princess (to King Lorik).
-
-local PRINCESS_RETURNED_BIT = 0x02
 
 -- ---------------------------------------------------------------------------
 -- Audio handling — host-level mute during banners. See get-to-level-2.lua
@@ -66,24 +63,24 @@ challenge.run{
     -- Win = the king's quest-flag for "princess returned" flips on.
     -- Bit 1 of $00DF is set in the dialogue routine after Gwaelin walks
     -- behind the king, well after the runner can't influence the outcome.
-    win = function()
-        return bit.band(read_u8(QUEST_FLAGS), PRINCESS_RETURNED_BIT) ~= 0
-    end,
+    --
+    -- Hot-path note: `b % 4 >= 2` is the same test as `bit.band(b, 0x02)
+    -- ~= 0` for any byte 0..255 — bits 0+1 contribute 0..3 to (b mod 4),
+    -- and the values where bit 1 is set are exactly 2 and 3. Skipping the
+    -- bit library keeps the per-frame predicate to plain arithmetic.
+    win = function() return read_u8(QUEST_FLAGS) % 4 >= 2 end,
 
     -- Death window catch — HP sits at 0 for several frames before the
     -- engine fades to black and warps the hero back to Tantegel.
     fail = function() return read_u8(CURRENT_HP) == 0 end,
 
+    -- HUD intentionally minimal — just the timer. Every per-frame
+    -- gui.text call is an allocation + render, so we keep the play-loop
+    -- footprint as small as possible. Use the in-game menu for HP / MP /
+    -- progress detail.
     hud = function(state)
-        local hp     = read_u8(CURRENT_HP)
-        local max_hp = read_u8(MAX_HP)
-        local flags  = read_u8(QUEST_FLAGS)
-        local rescued = (bit.band(flags, 0x01) ~= 0) and "Y" or "N"
-        gui.text(10,  6, "TIME")
-        hud.drawTime(48,  4, state.elapsed)
-        local shown_hp = (max_hp > 0 and hp > max_hp) and max_hp or hp
-        gui.text(10, 24, "HP " .. shown_hp .. "/" .. max_hp)
-        gui.text(10, 42, "PRINCESS " .. rescued)
+        gui.text(10, 6, "TIME")
+        hud.drawTime(48, 4, state.elapsed)
     end,
 
     result = function(state)

@@ -72,8 +72,13 @@ local FISH_SPRITE_W         = 16    -- approximate; lets us spawn the right edge
 local SCREEN_W              = 256
 local SCREEN_H              = 240
 
--- Per-attempt state.
+-- Per-attempt state. lives_at_start is captured once in setup() and
+-- never written again (unlike prev_lives which the fail predicate
+-- updates each frame). The win predicate uses lives_at_start to lock
+-- itself out permanently the moment a death happens this attempt — see
+-- the comment on `win` below.
 local prev_lives     = 0
+local lives_at_start = 0
 local floor_at_start = 0
 local fish_rain      = {}   -- list of { x, y, speed }
 
@@ -91,6 +96,7 @@ challenge.run{
         write_u8(HEALTH_REAL, START_HP)
         emu.frameadvance()
         prev_lives     = read_u8(LIVES)
+        lives_at_start = prev_lives   -- snapshot, never updated this attempt
         floor_at_start = read_u8(FLOOR)
         -- Reset rain + sound state on retry so each attempt gets the
         -- fresh sound at +1s and the rain at +2s.
@@ -125,7 +131,18 @@ challenge.run{
         end
     end,
 
-    win = function() return read_u8(FLOOR) > floor_at_start end,
+    -- Win = Simon completed a stair traversal AND he's still alive.
+    -- Reported bug: dying right after the countdown teleports Simon to
+    -- a checkpoint where $0046 (FLOOR) reads greater than the captured
+    -- start, and the framework checks win() before fail() — so a death
+    -- was registering as a completion. Locking the win predicate behind
+    -- "lives unchanged from start" makes it impossible to win after any
+    -- death this attempt; the next frame's fail() catches the death and
+    -- routes to the failure banner cleanly.
+    win = function()
+        if read_u8(LIVES) < lives_at_start then return false end
+        return read_u8(FLOOR) > floor_at_start
+    end,
 
     fail = function()
         local now = read_u8(LIVES)
