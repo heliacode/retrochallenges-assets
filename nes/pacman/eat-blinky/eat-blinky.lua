@@ -21,6 +21,8 @@ local SCORE_HUNTHOUSANDS = 0x0074
 local SCORE_MILLIONS     = 0x0075
 
 local LIVES    = 0x0067
+local PACMAN_X = 0x001A
+local PACMAN_Y = 0x001C
 local BLINKY_X = 0x001E
 local BLINKY_Y = 0x0020
 
@@ -35,39 +37,36 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Ghost-eaten detection — Data Crystal does NOT document a ghost-state
--- byte for the FDS port, so we infer the eat from two signals on the
--- same frame:
+-- byte for the FDS port, so we infer Blinky-specifically from two
+-- same-frame signals:
 --
 --   1. Score delta is exactly 200, 400, 800, or 1600 (the only values
---      a single-frame ghost-eat can produce in arcade-faithful Pac-Man).
---   2. Blinky's coordinates teleport — when eaten, the ghost snaps to
---      the ghost-house spawn point. Normal movement is 1px/frame; an
---      eat-event teleport is hundreds of pixels. A 16px threshold is
---      well above ghost movement and well below the smallest possible
---      teleport-on-eat.
---
--- The combination is what makes it Blinky-specific: ANY ghost being
--- eaten triggers the score event, but only the eaten ghost teleports.
+--      a single-frame ghost-eat can produce in arcade-faithful Pac-Man;
+--      the value depends on chain position, not on which ghost).
+--   2. On the eat frame, Blinky's coordinates are AT Pac-Man's
+--      coordinates (Manhattan distance < 16px). Ghosts don't actually
+--      teleport when eaten — they become eyes-only sprites that
+--      animate smoothly back to the ghost house — but at the instant
+--      of the score event, the collision puts them on the same tile
+--      as Pac-Man. ANY ghost being eaten triggers the score event;
+--      only the eaten ghost is ON Pac-Man at that frame.
 -- ---------------------------------------------------------------------------
 local GHOST_EAT_SCORE_DELTAS = { [200] = true, [400] = true, [800] = true, [1600] = true }
-local TELEPORT_THRESHOLD     = 16
+local COLLISION_THRESHOLD    = 16
 
 -- Per-attempt baselines (set in setup() so retries reset cleanly).
-local prev_score    = 0
-local prev_blinky_x = 0
-local prev_blinky_y = 0
-local prev_lives    = 0
+local prev_score = 0
+local prev_lives = 0
 
 -- Debug state — surfaced on the HUD so we can SEE what the detector is
 -- seeing when the player swears they just ate Blinky and nothing fired.
--- "delta" = score change last frame; "dx/dy" = Blinky's coord change
--- last frame; "last eat" = the most recent score delta that matched the
--- ghost-eat set, useful for confirming the Namco port's actual ghost-
--- eat score values match {200, 400, 800, 1600}.
+-- "delta"      = score change last frame
+-- "p2b dist"   = Manhattan distance from Pac-Man to Blinky right now
+-- "last eat"   = most recent score delta that matched the ghost-eat set
+-- "last p2b"   = Pac-Man-to-Blinky distance at the moment of last_eat
 local last_score_delta = 0
-local last_dx          = 0
-local last_dy          = 0
 local last_eat_delta   = 0
+local last_p2b_at_eat  = -1
 
 challenge.run{
     savestate = "savestates/eat-blinky.State",
@@ -76,39 +75,33 @@ challenge.run{
     setup = function(state)
         emu.frameadvance()
         prev_score       = read_score()
-        prev_blinky_x    = read_u8(BLINKY_X)
-        prev_blinky_y    = read_u8(BLINKY_Y)
         prev_lives       = read_u8(LIVES)
         last_score_delta = 0
-        last_dx          = 0
-        last_dy          = 0
         last_eat_delta   = 0
+        last_p2b_at_eat  = -1
     end,
 
     win = function()
-        local cur_score    = read_score()
-        local cur_blinky_x = read_u8(BLINKY_X)
-        local cur_blinky_y = read_u8(BLINKY_Y)
-
+        local cur_score = read_score()
         last_score_delta = cur_score - prev_score
-        last_dx = math.abs(cur_blinky_x - prev_blinky_x)
-        last_dy = math.abs(cur_blinky_y - prev_blinky_y)
-        local blinky_teleported = (last_dx > TELEPORT_THRESHOLD) or (last_dy > TELEPORT_THRESHOLD)
+        prev_score = cur_score
 
-        if GHOST_EAT_SCORE_DELTAS[last_score_delta] then
-            last_eat_delta = last_score_delta
+        if not GHOST_EAT_SCORE_DELTAS[last_score_delta] then
+            return false
         end
 
-        local eaten_blinky =
-            GHOST_EAT_SCORE_DELTAS[last_score_delta] and blinky_teleported
+        -- Score event matched a ghost-eat amount. Identify the ghost
+        -- by checking which one is colocated with Pac-Man this frame.
+        local px = read_u8(PACMAN_X)
+        local py = read_u8(PACMAN_Y)
+        local bx = read_u8(BLINKY_X)
+        local by = read_u8(BLINKY_Y)
+        local p2b = math.abs(px - bx) + math.abs(py - by)
 
-        -- Update baselines AFTER the check so the next frame's delta is
-        -- computed against this frame.
-        prev_score    = cur_score
-        prev_blinky_x = cur_blinky_x
-        prev_blinky_y = cur_blinky_y
+        last_eat_delta  = last_score_delta
+        last_p2b_at_eat = p2b
 
-        return eaten_blinky
+        return p2b < COLLISION_THRESHOLD
     end,
 
     fail = function()
@@ -119,14 +112,20 @@ challenge.run{
     end,
 
     hud = function(state)
+        local px = read_u8(PACMAN_X)
+        local py = read_u8(PACMAN_Y)
+        local bx = read_u8(BLINKY_X)
+        local by = read_u8(BLINKY_Y)
+        local p2b_now = math.abs(px - bx) + math.abs(py - by)
+
         gui.text(10,   6, "SCORE")
         gui.text(48,   6, tostring(read_score()))
         gui.text(10,  24, "DELTA")
         gui.text(48,  24, tostring(last_score_delta))
-        gui.text(10,  42, "BLINKY")
-        gui.text(48,  42, string.format("%d,%d  D%d/%d", read_u8(BLINKY_X), read_u8(BLINKY_Y), last_dx, last_dy))
+        gui.text(10,  42, "P2B")
+        gui.text(48,  42, tostring(p2b_now))
         gui.text(10,  60, "LAST EAT")
-        gui.text(60,  60, tostring(last_eat_delta))
+        gui.text(60,  60, string.format("%d  p2b=%d", last_eat_delta, last_p2b_at_eat))
         gui.text(10,  78, "TIME")
         hud.drawTime(48, 76, state.elapsed)
     end,
