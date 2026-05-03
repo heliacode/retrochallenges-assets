@@ -177,6 +177,113 @@ function M.drawBar(x, y, width, current, max, kind)
 end
 
 -- ---------------------------------------------------------------------------
+-- Standard HUD layout — single drop-in for every challenge.
+--
+-- Replaces a per-challenge `hud = function(state)` body that hand-positions
+-- gui.text + draw* calls (which is how every CV / Pac-Man / DK / MM2
+-- challenge ended up with subtly different y-spacing, label positions,
+-- and missing rows). Pass a table of what the challenge cares about; the
+-- function picks the rows, lays them out at consistent positions, and
+-- draws a translucent backing panel so the HUD reads against any sprite
+-- chaos behind it.
+--
+-- Usage from a challenge's hud callback:
+--
+--   hud.drawStandardHud(state, {
+--       score    = read_score(),
+--       target   = TARGET_SCORE,           -- optional; omits "/ target" when nil
+--       hp       = read_u8(HEALTH_REAL),
+--       hpMax    = 0x40,                   -- both → render as bar
+--       lives    = read_u8(LIVES),
+--       bossLabel = "BAT",                 -- optional; defaults to "BOSS"
+--       bossHp   = read_u8(BOSS_HEALTH),
+--       extras   = {                       -- arbitrary additional rows
+--           { label = "CHAIN", value = chain_count .. " / 4" },
+--           { label = "DOTS",  value = read_u8(PELLETS_REMAINING) },
+--       },
+--   })
+--
+-- Row order is fixed: TIME → SCORE → HP → LIVES → BOSS → EXTRAS. Any
+-- field that's nil is skipped, so a score-only challenge gets a 2-row
+-- HUD, a boss fight gets 3-4 rows, etc. Layout grid is 18px row spacing,
+-- 8px left padding, 56px label-to-value gap.
+-- ---------------------------------------------------------------------------
+local STD_HUD_X_LABEL  = 10
+local STD_HUD_X_VALUE  = 56
+local STD_HUD_Y_START  = 6
+local STD_HUD_ROW      = 18
+local STD_HUD_PANEL_X  = 4
+local STD_HUD_PANEL_Y  = 2
+local STD_HUD_PANEL_W  = 130
+local STD_HUD_PANEL_BG = 0xa0000000
+
+function M.drawStandardHud(state, opts)
+    opts = opts or {}
+    local rows = {}
+
+    table.insert(rows, function(y)
+        gui.text(STD_HUD_X_LABEL, y, "TIME")
+        M.drawTime(STD_HUD_X_VALUE, y - 2, state.elapsed)
+    end)
+
+    if opts.score ~= nil then
+        table.insert(rows, function(y)
+            gui.text(STD_HUD_X_LABEL, y, "SCORE")
+            if opts.target then
+                M.drawScore(STD_HUD_X_VALUE, y - 2, opts.score, opts.target)
+            else
+                M.drawScore(STD_HUD_X_VALUE, y - 2, opts.score)
+            end
+        end)
+    end
+
+    if opts.hp ~= nil then
+        table.insert(rows, function(y)
+            gui.text(STD_HUD_X_LABEL, y, "HP")
+            if opts.hpMax then
+                M.drawBar(STD_HUD_X_VALUE - 20, y + 2, 90, opts.hp, opts.hpMax, "hp")
+            else
+                gui.text(STD_HUD_X_VALUE, y, tostring(opts.hp))
+            end
+        end)
+    end
+
+    if opts.lives ~= nil then
+        table.insert(rows, function(y)
+            gui.text(STD_HUD_X_LABEL, y, "LIVES")
+            gui.text(STD_HUD_X_VALUE, y, tostring(opts.lives))
+        end)
+    end
+
+    if opts.bossHp ~= nil then
+        table.insert(rows, function(y)
+            gui.text(STD_HUD_X_LABEL, y, opts.bossLabel or "BOSS")
+            gui.text(STD_HUD_X_VALUE, y, tostring(opts.bossHp))
+        end)
+    end
+
+    if opts.extras then
+        for _, e in ipairs(opts.extras) do
+            table.insert(rows, function(y)
+                gui.text(STD_HUD_X_LABEL, y, tostring(e.label or ""))
+                gui.text(STD_HUD_X_VALUE, y, tostring(e.value or ""))
+            end)
+        end
+    end
+
+    -- Translucent backing panel (sized to row count).
+    local panel_h = #rows * STD_HUD_ROW + 6
+    gui.drawRectangle(STD_HUD_PANEL_X, STD_HUD_PANEL_Y, STD_HUD_PANEL_W, panel_h,
+                      STD_HUD_PANEL_BG, STD_HUD_PANEL_BG)
+
+    local y = STD_HUD_Y_START
+    for _, render in ipairs(rows) do
+        render(y)
+        y = y + STD_HUD_ROW
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- Key prompts (24x24 sprites under keys/, fallback to "[X] Label" text)
 -- ---------------------------------------------------------------------------
 local KEY_W = 24

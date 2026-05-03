@@ -86,18 +86,13 @@ challenge.run{
     end,
 
     hud = function(state)
-        local simon_hp = read_u8(HEALTH_REAL)
-        local boss_hp  = read_u8(BOSS_HEALTH)
-        local lives    = read_u8(LIVES)
-
-        gui.text(10,  6, "TIME")
-        hud.drawTime(48,  4, state.elapsed)
-        gui.text(10, 30, "HP")
-        hud.drawBar(28, 32, 70, simon_hp, FULL_HEALTH, "hp")
-        gui.text(10, 46, "LIVES")
-        hud.drawDigits(48, 44, tostring(lives))
-        gui.text(10, 70, "MUMMY")
-        hud.drawDigits(48, 68, tostring(boss_hp))
+        hud.drawStandardHud(state, {
+            hp        = read_u8(HEALTH_REAL),
+            hpMax     = FULL_HEALTH,
+            lives     = read_u8(LIVES),
+            bossLabel = "MUMMY",
+            bossHp    = read_u8(BOSS_HEALTH),
+        })
     end,
 
     result = function(state)
