@@ -429,6 +429,26 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Eat Blinky",
+          "description": "Hunt the red ghost. Snag a power pellet, chase Blinky down, and chomp him. One death ends the run — Pinky, Inky, and Clyde are still on the menu, but only Blinky counts.",
+          "lua": "nes\\pacman\\eat-blinky\\eat-blinky.lua",
+          "difficulty": "Easy",
+          "category": "boss",
+          "estimatedTime": "30-90 seconds",
+          "minPlausibleFrames":  600,
+          "flagBelowFrames":    1500,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1800 },
+              { "grade": "SS",  "maxFrames":   3000 },
+              { "grade": "S",   "maxFrames":   4500 },
+              { "grade": "A",   "maxFrames":   7200 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -482,10 +502,10 @@
     }
   ],
   "metadata": {
-    "version": "1.24.0",
+    "version": "1.25.0",
     "lastUpdated": "2026-05-02T00:00:00Z",
     "totalGames": 5,
-    "totalChallenges": 22,
+    "totalChallenges": 23,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
