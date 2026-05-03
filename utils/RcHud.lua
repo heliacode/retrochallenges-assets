@@ -205,16 +205,24 @@ end
 --
 -- Row order is fixed: TIME → SCORE → HP → LIVES → BOSS → EXTRAS. Any
 -- field that's nil is skipped, so a score-only challenge gets a 2-row
--- HUD, a boss fight gets 3-4 rows, etc. Layout grid is 18px row spacing,
--- 8px left padding, 56px label-to-value gap.
+-- HUD, a boss fight gets 3-4 rows, etc.
+--
+-- All positions snap to the NES PPU 8px tile grid (verified via
+-- _tools/grid_overlay.lua):
+--
+--   panel = (0, 0)  width 128 = exactly 4 major (32px) grid cells
+--   label x = 8     (one minor cell of padding inside cell 0)
+--   value x = 64    (start of major cell 2 — solid vertical alignment)
+--   row 1 y = 8     (one minor cell down from the top edge)
+--   row spacing = 24  (3 minor cells; comfortable for 22px digit sprites)
 -- ---------------------------------------------------------------------------
-local STD_HUD_X_LABEL  = 10
-local STD_HUD_X_VALUE  = 56
-local STD_HUD_Y_START  = 6
-local STD_HUD_ROW      = 18
-local STD_HUD_PANEL_X  = 4
-local STD_HUD_PANEL_Y  = 2
-local STD_HUD_PANEL_W  = 130
+local STD_HUD_X_LABEL  = 8
+local STD_HUD_X_VALUE  = 64
+local STD_HUD_Y_START  = 8
+local STD_HUD_ROW      = 24
+local STD_HUD_PANEL_X  = 0
+local STD_HUD_PANEL_Y  = 0
+local STD_HUD_PANEL_W  = 128
 local STD_HUD_PANEL_BG = 0xa0000000
 
 function M.drawStandardHud(state, opts)
@@ -271,8 +279,10 @@ function M.drawStandardHud(state, opts)
         end
     end
 
-    -- Translucent backing panel (sized to row count).
-    local panel_h = #rows * STD_HUD_ROW + 6
+    -- Translucent backing panel — sized to row count, height snaps to
+    -- the 8px minor grid (Y_START + N rows of 24px each = always a
+    -- multiple of 8, so the panel bottom edge lands on a gridline).
+    local panel_h = STD_HUD_Y_START + #rows * STD_HUD_ROW
     gui.drawRectangle(STD_HUD_PANEL_X, STD_HUD_PANEL_Y, STD_HUD_PANEL_W, panel_h,
                       STD_HUD_PANEL_BG, STD_HUD_PANEL_BG)
 
