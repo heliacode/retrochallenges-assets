@@ -142,7 +142,7 @@ local function neutralize_input()
 end
 
 -- ---------------------------------------------------------------------------
--- Universal freeze — savestate-reload trick.
+-- Universal freeze — RAM snapshot / restore.
 --
 -- Why: per-game freeze bytes (Castlevania $0022, Donkey Kong $004F, etc.)
 -- aren't documented for every game (Pac-Man, looking at you). Without
@@ -151,25 +151,37 @@ end
 -- player keeps playing under the win banner, etc. This is the bug that
 -- broke Pac-Man.
 --
--- The fix: snapshot the emulator state at the moment a freeze phase
--- begins, then reload that snapshot every frame while the phase is
--- active. The game advances one frame each iteration, but the reload
--- immediately reverts it — net effect, the game appears frozen with at
--- most a 1-frame visual twitch (imperceptible at 60fps).
+-- The fix: snapshot the NES's 2KB main RAM at the moment a freeze phase
+-- begins, then write it back every frame while the phase is active. The
+-- CPU re-executes one frame from the same RAM state and produces the
+-- same RAM updates / PPU writes, so the game is effectively frozen.
 --
--- We use BizHawk's numbered savestate slots (0-9 in memory) rather
--- than a file path so the freeze adds no disk I/O. Slot 9 was chosen
--- because it's least likely to collide with a player's manual
--- quick-save habit (most users live on slots 0-3).
+-- Why RAM I/O instead of savestate.saveslot/loadslot: BizHawk logs each
+-- savestate operation to the Lua console (one line per save + load).
+-- During a forever-loop banner phase that's 60 lines/sec of "Loaded
+-- state from slot N" spam. Direct memory reads/writes are silent and
+-- faster (no PPU/APU state to copy).
+--
+-- Tradeoff: PPU/APU state isn't reverted, so sprites and audio may
+-- drift slightly behind the banner. In practice the RAM revert keeps
+-- the game state machine stuck, so the next frame's PPU writes
+-- regenerate the same scene — visually indistinguishable from a true
+-- pause.
 -- ---------------------------------------------------------------------------
-local FREEZE_SLOT = 9
+local NES_RAM_DOMAIN = "RAM"
+local NES_RAM_SIZE   = 0x800   -- 2KB main RAM ($0000-$07FF)
+
+local _frozen_ram = nil
 
 local function freeze_snapshot()
-    pcall(function() savestate.saveslot(FREEZE_SLOT) end)
+    if not memory.read_bytes_as_array then return end
+    local ok, snap = pcall(memory.read_bytes_as_array, 0, NES_RAM_SIZE, NES_RAM_DOMAIN)
+    if ok then _frozen_ram = snap end
 end
 
 local function freeze_restore()
-    pcall(function() savestate.loadslot(FREEZE_SLOT) end)
+    if not _frozen_ram or not memory.write_bytes_as_array then return end
+    pcall(memory.write_bytes_as_array, 0, _frozen_ram, NES_RAM_DOMAIN)
 end
 
 -- ---------------------------------------------------------------------------
