@@ -73,7 +73,7 @@ end
 -- width, anchored at y=0. Drawn BEFORE the grid so the gridlines
 -- overlay it, making it easy to lay out HUD elements within the strip
 -- against the 8/32 px tile boundaries.
-local HUD_STRIP_BG = 0xa0000000
+local HUD_STRIP_BG = 0xff000000   -- fully opaque black
 
 -- ---------------------------------------------------------------------------
 -- font_1 pixel-font renderer.
@@ -96,12 +96,23 @@ local FONT_SCALE      = 0.75 -- 75% — preserves more pixel-art detail than 50%
 local FONT_GLYPH_SIZE = math.floor(FONT_NATIVE * FONT_SCALE)  -- 12 px square
 local FONT_ADVANCE    = 14   -- 12 px glyph + 2 px breathing room
 
+-- Punctuation that doesn't follow the simple "<UPPER>.png" rule. See
+-- assets/font_1.md for the full character map.
+local FONT_PUNCT = {
+    ["!"] = "excl_2.png",   -- no canonical excl.png — only the GLOVER!!! sprites
+    ["?"] = "qmark.png",
+    [","] = "comma.png",
+    ["-"] = "dash.png",
+    ["/"] = "slash.png",
+}
+
 local function draw_font_text(x, y, text)
     local cur_x = x
     for i = 1, #text do
-        local c = text:sub(i, i):upper()
+        local c = text:sub(i, i)
         if c ~= " " then
-            gui.drawImage(FONT_DIR .. c .. ".png", cur_x, y, FONT_GLYPH_SIZE, FONT_GLYPH_SIZE)
+            local file = FONT_PUNCT[c] or (c:upper() .. ".png")
+            gui.drawImage(FONT_DIR .. file, cur_x, y, FONT_GLYPH_SIZE, FONT_GLYPH_SIZE)
         end
         cur_x = cur_x + FONT_ADVANCE
     end
@@ -110,7 +121,7 @@ end
 while true do
     poll_toggle()
     gui.drawRectangle(0, 0, SCREEN_W, 40, HUD_STRIP_BG, HUD_STRIP_BG)
-    draw_font_text(8, 8, "TEST")
+    draw_font_text(8, 8, "Kill the Bat !")
     if _grid_visible then
         draw_grid()
     end
