@@ -105,13 +105,33 @@ local FONT_WORD_ADVANCE    = 7
 
 -- Punctuation that doesn't follow the simple "<UPPER>.png" rule. See
 -- assets/font_1.md for the full character map.
+--
+-- font_1 is incomplete — it has no `0.png`, `period.png`, or
+-- `colon.png`. The timer below needs all three, so we substitute the
+-- nearest available glyphs and accept they look a little off until
+-- proper digits get added to font_1.
 local FONT_PUNCT = {
     ["!"] = "excl_2.png",   -- no canonical excl.png — only the GLOVER!!! sprites
     ["?"] = "qmark.png",
     [","] = "comma.png",
     ["-"] = "dash.png",
     ["/"] = "slash.png",
+    ["0"] = "O.png",        -- letter O substitutes for digit 0
+    ["."] = "comma.png",    -- closest dot-shaped glyph in the set
+    [":"] = "dash.png",     -- closest separator; reads as a dash for now
 }
+
+local function font_text_width(text)
+    local w = 0
+    for i = 1, #text do
+        if text:sub(i, i) == " " then
+            w = w + FONT_WORD_ADVANCE
+        else
+            w = w + FONT_LETTER_ADVANCE
+        end
+    end
+    return w
+end
 
 local function draw_font_text(x, y, text)
     local cur_x = x
@@ -127,10 +147,26 @@ local function draw_font_text(x, y, text)
     end
 end
 
+local function draw_font_text_right(x_right, y, text)
+    draw_font_text(x_right - font_text_width(text), y, text)
+end
+
+-- Test timer — counts up from the moment the script is loaded. Right-
+-- aligned to (SCREEN_W - 8) so it lives in the top-right of the strip.
+local _timer_start_frame = emu.framecount()
+
 while true do
     poll_toggle()
     gui.drawRectangle(0, 0, SCREEN_W, 40, HUD_STRIP_BG, HUD_STRIP_BG)
+
     draw_font_text(8, 8, "Kill the Bat")
+
+    local elapsed_frames = emu.framecount() - _timer_start_frame
+    local total_seconds  = math.floor(elapsed_frames / 60)
+    local mins           = math.floor(total_seconds / 60)
+    local secs           = total_seconds % 60
+    draw_font_text_right(SCREEN_W - 8, 8, string.format("%d:%02d", mins, secs))
+
     if _grid_visible then
         draw_grid()
     end
