@@ -75,9 +75,39 @@ end
 -- against the 8/32 px tile boundaries.
 local HUD_STRIP_BG = 0xa0000000
 
+-- ---------------------------------------------------------------------------
+-- font_1 pixel-font renderer.
+--
+-- Glyphs are individual PNGs in assets/font_1/<UPPER>.png — see
+-- assets/font_1.md for the character map. We resolve the path off the
+-- script's own location so it works regardless of BizHawk's CWD.
+-- Each glyph is ~13 px wide; 16 px advance keeps them on the minor
+-- grid with a ~3 px breathing gap.
+-- ---------------------------------------------------------------------------
+local function script_dir()
+    local src = debug.getinfo(1, "S").source
+    if src:sub(1, 1) == "@" then src = src:sub(2) end
+    return src:match("(.*[/\\])") or "./"
+end
+
+local FONT_DIR     = script_dir() .. "../../assets/font_1/"
+local FONT_ADVANCE = 16
+
+local function draw_font_text(x, y, text)
+    local cur_x = x
+    for i = 1, #text do
+        local c = text:sub(i, i):upper()
+        if c ~= " " then
+            gui.drawImage(FONT_DIR .. c .. ".png", cur_x, y)
+        end
+        cur_x = cur_x + FONT_ADVANCE
+    end
+end
+
 while true do
     poll_toggle()
     gui.drawRectangle(0, 0, SCREEN_W, 40, HUD_STRIP_BG, HUD_STRIP_BG)
+    draw_font_text(8, 8, "TEST")
     if _grid_visible then
         draw_grid()
     end
