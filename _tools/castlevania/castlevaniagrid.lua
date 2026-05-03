@@ -90,15 +90,18 @@ local function script_dir()
     return src:match("(.*[/\\])") or "./"
 end
 
-local FONT_DIR     = script_dir() .. "../../assets/font_1/"
-local FONT_ADVANCE = 16
+local FONT_DIR        = script_dir() .. "../../assets/font_1/"
+local FONT_NATIVE     = 16   -- approximate native glyph box (px)
+local FONT_SCALE      = 0.5  -- 50% — halves both dimensions
+local FONT_GLYPH_SIZE = math.floor(FONT_NATIVE * FONT_SCALE)  -- 8 px square
+local FONT_ADVANCE    = 10   -- 8 px glyph + 2 px breathing room
 
 local function draw_font_text(x, y, text)
     local cur_x = x
     for i = 1, #text do
         local c = text:sub(i, i):upper()
         if c ~= " " then
-            gui.drawImage(FONT_DIR .. c .. ".png", cur_x, y)
+            gui.drawImage(FONT_DIR .. c .. ".png", cur_x, y, FONT_GLYPH_SIZE, FONT_GLYPH_SIZE)
         end
         cur_x = cur_x + FONT_ADVANCE
     end
