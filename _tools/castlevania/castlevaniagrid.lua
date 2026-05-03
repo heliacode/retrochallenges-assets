@@ -130,7 +130,7 @@ end
 while true do
     poll_toggle()
     gui.drawRectangle(0, 0, SCREEN_W, 40, HUD_STRIP_BG, HUD_STRIP_BG)
-    draw_font_text(8, 8, "Kill the Bat !")
+    draw_font_text(8, 8, "Kill the Bat")
     if _grid_visible then
         draw_grid()
     end
