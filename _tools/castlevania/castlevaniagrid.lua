@@ -69,8 +69,15 @@ local function poll_toggle()
     _g_was_pressed = now
 end
 
+-- Top HUD strip — 256x40 semi-transparent black bar across the full
+-- width, anchored at y=0. Drawn BEFORE the grid so the gridlines
+-- overlay it, making it easy to lay out HUD elements within the strip
+-- against the 8/32 px tile boundaries.
+local HUD_STRIP_BG = 0xa0000000
+
 while true do
     poll_toggle()
+    gui.drawRectangle(0, 0, SCREEN_W, 40, HUD_STRIP_BG, HUD_STRIP_BG)
     if _grid_visible then
         draw_grid()
     end
