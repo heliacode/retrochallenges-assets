@@ -54,7 +54,6 @@ local last_eat_frame = -10000
 challenge.run{
     savestate = "savestates/eat-all-4-ghosts.State",
     expected_rom_hashes = {},
-    countdown = false,
 
     setup = function(state)
         emu.frameadvance()

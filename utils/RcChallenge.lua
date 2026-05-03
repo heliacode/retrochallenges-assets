@@ -142,6 +142,37 @@ local function neutralize_input()
 end
 
 -- ---------------------------------------------------------------------------
+-- Universal freeze — savestate-reload trick.
+--
+-- Why: per-game freeze bytes (Castlevania $0022, Donkey Kong $004F, etc.)
+-- aren't documented for every game (Pac-Man, looking at you). Without
+-- them, the framework's countdown / win banner / fail banner phases let
+-- the underlying game keep ticking — ghosts move during countdown,
+-- player keeps playing under the win banner, etc. This is the bug that
+-- broke Pac-Man.
+--
+-- The fix: snapshot the emulator state at the moment a freeze phase
+-- begins, then reload that snapshot every frame while the phase is
+-- active. The game advances one frame each iteration, but the reload
+-- immediately reverts it — net effect, the game appears frozen with at
+-- most a 1-frame visual twitch (imperceptible at 60fps).
+--
+-- We use BizHawk's numbered savestate slots (0-9 in memory) rather
+-- than a file path so the freeze adds no disk I/O. Slot 9 was chosen
+-- because it's least likely to collide with a player's manual
+-- quick-save habit (most users live on slots 0-3).
+-- ---------------------------------------------------------------------------
+local FREEZE_SLOT = 9
+
+local function freeze_snapshot()
+    pcall(function() savestate.saveslot(FREEZE_SLOT) end)
+end
+
+local function freeze_restore()
+    pcall(function() savestate.loadslot(FREEZE_SLOT) end)
+end
+
+-- ---------------------------------------------------------------------------
 -- Internal: countdown
 -- ---------------------------------------------------------------------------
 local COUNTDOWN_STEPS = {
@@ -155,9 +186,14 @@ local COUNTDOWN_STEPS = {
 -- caller should reload + restart from the top).
 local function play_countdown(spec)
     gui.clearGraphics()
+    -- Snapshot the moment countdown begins. Every iteration below
+    -- reloads this snapshot so the game can't progress visibly even
+    -- if the per-game freeze byte is unknown (e.g. Pac-Man).
+    freeze_snapshot()
     for _, step in ipairs(COUNTDOWN_STEPS) do
         if step.tick then safe_play_sound("tock.wav") end
         for _ = 1, step.frames do
+            freeze_restore()
             spec.freeze_game()
             -- Force every NES button to false so a turn-based game
             -- (Dragon Warrior, etc.) without a per-game freeze byte can't
@@ -170,8 +206,9 @@ local function play_countdown(spec)
         end
     end
     gui.clearGraphics()
-    spec.freeze_game()
-    emu.frameadvance()
+    -- Final restore so play resumes EXACTLY from the snapshot frame —
+    -- not from "snapshot + 1 frame" of input-neutralized state.
+    freeze_restore()
     spec.release_game()
     return false
 end
@@ -191,7 +228,11 @@ local function draw_play_on_frames(spec, frames)
 end
 
 local function show_complete_screen_forever(spec, payload, time_text)
+    -- Snapshot the win moment so the banner phase can freeze the game
+    -- visually, regardless of whether spec.freeze_game does anything.
+    freeze_snapshot()
     while true do
+        freeze_restore()
         spec.freeze_game()
         neutralize_input()
         hud.banner.win()
@@ -206,7 +247,12 @@ local function show_complete_screen_forever(spec, payload, time_text)
 end
 
 local function show_failure_screen_forever(spec, time_text)
+    -- Same universal-freeze trick as the win banner — the player's
+    -- death frame stays on screen instead of the game continuing
+    -- to play out underneath the banner.
+    freeze_snapshot()
     while true do
+        freeze_restore()
         spec.freeze_game()
         neutralize_input()
         hud.banner.fail()

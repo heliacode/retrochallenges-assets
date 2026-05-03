@@ -62,13 +62,6 @@ challenge.run{
     -- challenge to the correct ROM dump.
     expected_rom_hashes = {},
 
-    -- Countdown disabled: Pac-Man has no known per-game freeze byte, so
-    -- a 4-second countdown would let the ghosts keep moving while the
-    -- player can't input — costing them lives before "GO" appears.
-    -- Capture the savestate at the "READY!" screen instead and the
-    -- game's own ready phase becomes the warmup.
-    countdown = false,
-
     setup = function(state)
         emu.frameadvance()
         prev_lives = read_u8(LIVES)

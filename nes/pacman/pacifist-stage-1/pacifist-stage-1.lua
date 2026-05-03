@@ -44,7 +44,6 @@ local initial_level = 0
 challenge.run{
     savestate = "savestates/pacifist-stage-1.State",
     expected_rom_hashes = {},
-    countdown = false,
 
     setup = function(state)
         emu.frameadvance()

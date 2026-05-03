@@ -58,17 +58,31 @@ local prev_blinky_x = 0
 local prev_blinky_y = 0
 local prev_lives    = 0
 
+-- Debug state — surfaced on the HUD so we can SEE what the detector is
+-- seeing when the player swears they just ate Blinky and nothing fired.
+-- "delta" = score change last frame; "dx/dy" = Blinky's coord change
+-- last frame; "last eat" = the most recent score delta that matched the
+-- ghost-eat set, useful for confirming the Namco port's actual ghost-
+-- eat score values match {200, 400, 800, 1600}.
+local last_score_delta = 0
+local last_dx          = 0
+local last_dy          = 0
+local last_eat_delta   = 0
+
 challenge.run{
     savestate = "savestates/eat-blinky.State",
     expected_rom_hashes = {},
-    countdown = false,
 
     setup = function(state)
         emu.frameadvance()
-        prev_score    = read_score()
-        prev_blinky_x = read_u8(BLINKY_X)
-        prev_blinky_y = read_u8(BLINKY_Y)
-        prev_lives    = read_u8(LIVES)
+        prev_score       = read_score()
+        prev_blinky_x    = read_u8(BLINKY_X)
+        prev_blinky_y    = read_u8(BLINKY_Y)
+        prev_lives       = read_u8(LIVES)
+        last_score_delta = 0
+        last_dx          = 0
+        last_dy          = 0
+        last_eat_delta   = 0
     end,
 
     win = function()
@@ -76,13 +90,17 @@ challenge.run{
         local cur_blinky_x = read_u8(BLINKY_X)
         local cur_blinky_y = read_u8(BLINKY_Y)
 
-        local score_delta = cur_score - prev_score
-        local dx = math.abs(cur_blinky_x - prev_blinky_x)
-        local dy = math.abs(cur_blinky_y - prev_blinky_y)
-        local blinky_teleported = (dx > TELEPORT_THRESHOLD) or (dy > TELEPORT_THRESHOLD)
+        last_score_delta = cur_score - prev_score
+        last_dx = math.abs(cur_blinky_x - prev_blinky_x)
+        last_dy = math.abs(cur_blinky_y - prev_blinky_y)
+        local blinky_teleported = (last_dx > TELEPORT_THRESHOLD) or (last_dy > TELEPORT_THRESHOLD)
+
+        if GHOST_EAT_SCORE_DELTAS[last_score_delta] then
+            last_eat_delta = last_score_delta
+        end
 
         local eaten_blinky =
-            GHOST_EAT_SCORE_DELTAS[score_delta] and blinky_teleported
+            GHOST_EAT_SCORE_DELTAS[last_score_delta] and blinky_teleported
 
         -- Update baselines AFTER the check so the next frame's delta is
         -- computed against this frame.
@@ -101,14 +119,16 @@ challenge.run{
     end,
 
     hud = function(state)
-        gui.text(10,  6, "SCORE")
-        hud.drawScore(48,  4, read_score(), 0)
-        gui.text(10, 24, "BLINKY")
-        gui.text(48, 24, string.format("%d,%d", read_u8(BLINKY_X), read_u8(BLINKY_Y)))
-        gui.text(10, 42, "LIVES")
-        gui.text(48, 42, tostring(read_u8(LIVES)))
-        gui.text(10, 60, "TIME")
-        hud.drawTime(48, 58, state.elapsed)
+        gui.text(10,   6, "SCORE")
+        gui.text(48,   6, tostring(read_score()))
+        gui.text(10,  24, "DELTA")
+        gui.text(48,  24, tostring(last_score_delta))
+        gui.text(10,  42, "BLINKY")
+        gui.text(48,  42, string.format("%d,%d  D%d/%d", read_u8(BLINKY_X), read_u8(BLINKY_Y), last_dx, last_dy))
+        gui.text(10,  60, "LAST EAT")
+        gui.text(60,  60, tostring(last_eat_delta))
+        gui.text(10,  78, "TIME")
+        hud.drawTime(48, 76, state.elapsed)
     end,
 
     result = function(state)
