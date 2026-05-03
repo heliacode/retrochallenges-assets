@@ -7,8 +7,7 @@
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
 
-local read_u8  = memory.read_u8  or memory.readbyte
-local write_u8 = memory.write_u8 or memory.writebyte
+local read_u8 = memory.read_u8 or memory.readbyte
 
 -- ---------------------------------------------------------------------------
 -- Memory map (NES Pac-Man — derived from the 1985 Namco FDS RAM map)

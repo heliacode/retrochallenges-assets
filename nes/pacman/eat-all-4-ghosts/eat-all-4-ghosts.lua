@@ -89,7 +89,7 @@ challenge.run{
 
     hud = function(state)
         gui.text(10,  6, "SCORE")
-        hud.drawScore(48,  4, read_score(), 0)
+        hud.drawScore(48,  4, read_score())
         gui.text(10, 24, "CHAIN")
         gui.text(48, 24, tostring(chain_count) .. " / 4")
         gui.text(10, 42, "LIVES")
