@@ -409,6 +409,26 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Finish Stage 1",
+          "description": "Clear all 244 dots on the Cherry board and advance to stage 2. One death ends the run — no margin for error against the ghosts.",
+          "lua": "nes\\pacman\\finishstage1\\finishstage1.lua",
+          "difficulty": "Medium",
+          "category": "speedrun",
+          "estimatedTime": "1-3 minutes",
+          "minPlausibleFrames": 1500,
+          "flagBelowFrames":    2400,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   3000 },
+              { "grade": "SS",  "maxFrames":   4500 },
+              { "grade": "S",   "maxFrames":   6000 },
+              { "grade": "A",   "maxFrames":   9000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -462,10 +482,10 @@
     }
   ],
   "metadata": {
-    "version": "1.23.0",
+    "version": "1.24.0",
     "lastUpdated": "2026-05-02T00:00:00Z",
     "totalGames": 5,
-    "totalChallenges": 21,
+    "totalChallenges": 22,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
