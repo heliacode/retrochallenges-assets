@@ -92,9 +92,9 @@ end
 
 local FONT_DIR        = script_dir() .. "../../assets/font_1/"
 local FONT_NATIVE     = 16   -- approximate native glyph box (px)
-local FONT_SCALE      = 0.5  -- 50% — halves both dimensions
-local FONT_GLYPH_SIZE = math.floor(FONT_NATIVE * FONT_SCALE)  -- 8 px square
-local FONT_ADVANCE    = 10   -- 8 px glyph + 2 px breathing room
+local FONT_SCALE      = 0.75 -- 75% — preserves more pixel-art detail than 50%
+local FONT_GLYPH_SIZE = math.floor(FONT_NATIVE * FONT_SCALE)  -- 12 px square
+local FONT_ADVANCE    = 14   -- 12 px glyph + 2 px breathing room
 
 local function draw_font_text(x, y, text)
     local cur_x = x
