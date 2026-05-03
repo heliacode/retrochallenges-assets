@@ -90,11 +90,18 @@ local function script_dir()
     return src:match("(.*[/\\])") or "./"
 end
 
-local FONT_DIR        = script_dir() .. "../../assets/font_1/"
-local FONT_NATIVE     = 16   -- approximate native glyph box (px)
-local FONT_SCALE      = 0.75 -- 75% — preserves more pixel-art detail than 50%
-local FONT_GLYPH_SIZE = math.floor(FONT_NATIVE * FONT_SCALE)  -- 12 px square
-local FONT_ADVANCE    = 14   -- 12 px glyph + 2 px breathing room
+local FONT_DIR             = script_dir() .. "../../assets/font_1/"
+local FONT_NATIVE          = 16   -- approximate native glyph box (px)
+local FONT_SCALE           = 0.75 -- 75% — preserves more pixel-art detail than 50%
+local FONT_GLYPH_SIZE      = math.floor(FONT_NATIVE * FONT_SCALE)  -- 12 px square
+
+-- Letter advance was 14 (12 glyph + 2 breathing); reduced 25% → 11 (so
+-- glyphs draw at 12 wide with -1 visual overlap, which the glyph
+-- sprites' own padding absorbs cleanly).
+local FONT_LETTER_ADVANCE  = 11
+-- Word break (space char) was 14; reduced 50% → 7. Keeps word
+-- separation visible without making spaces dominate the line.
+local FONT_WORD_ADVANCE    = 7
 
 -- Punctuation that doesn't follow the simple "<UPPER>.png" rule. See
 -- assets/font_1.md for the full character map.
@@ -110,11 +117,13 @@ local function draw_font_text(x, y, text)
     local cur_x = x
     for i = 1, #text do
         local c = text:sub(i, i)
-        if c ~= " " then
+        if c == " " then
+            cur_x = cur_x + FONT_WORD_ADVANCE
+        else
             local file = FONT_PUNCT[c] or (c:upper() .. ".png")
             gui.drawImage(FONT_DIR .. file, cur_x, y, FONT_GLYPH_SIZE, FONT_GLYPH_SIZE)
+            cur_x = cur_x + FONT_LETTER_ADVANCE
         end
-        cur_x = cur_x + FONT_ADVANCE
     end
 end
 
