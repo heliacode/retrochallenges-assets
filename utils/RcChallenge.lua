@@ -142,31 +142,27 @@ local function neutralize_input()
 end
 
 -- ---------------------------------------------------------------------------
--- Universal freeze — RAM snapshot / restore.
+-- Universal freeze — RAM snapshot / restore. Used as a FALLBACK only.
 --
--- Why: per-game freeze bytes (Castlevania $0022, Donkey Kong $004F, etc.)
--- aren't documented for every game (Pac-Man, looking at you). Without
--- them, the framework's countdown / win banner / fail banner phases let
--- the underlying game keep ticking — ghosts move during countdown,
--- player keeps playing under the win banner, etc. This is the bug that
--- broke Pac-Man.
+-- Why fallback: per-game freeze bytes (Castlevania $0022, Donkey Kong
+-- $004F, Mega Man 2 $00AA bit 2, etc.) are surgical — one byte the
+-- game's main loop reads to halt entities. Cheap, deterministic, no
+-- side effects. Use them when the spec provides them.
 --
--- The fix: snapshot the NES's 2KB main RAM at the moment a freeze phase
--- begins, then write it back every frame while the phase is active. The
--- CPU re-executes one frame from the same RAM state and produces the
--- same RAM updates / PPU writes, so the game is effectively frozen.
+-- The universal RAM-snapshot freeze is only safe for games whose
+-- engine doesn't keep state in CPU registers across frames. We
+-- restore main RAM each frame but NOT the CPU registers (program
+-- counter, accumulator, X/Y, stack pointer) — restoring those would
+-- require a full savestate. For most games the desync is invisible.
+-- For Mega Man 2's entity engine it leaves the game stuck after
+-- countdown (the engine has loop state in registers that points into
+-- post-snapshot RAM addresses, so when we revert RAM the next
+-- instruction reads garbage and the input-handler short-circuits).
 --
--- Why RAM I/O instead of savestate.saveslot/loadslot: BizHawk logs each
--- savestate operation to the Lua console (one line per save + load).
--- During a forever-loop banner phase that's 60 lines/sec of "Loaded
--- state from slot N" spam. Direct memory reads/writes are silent and
--- faster (no PPU/APU state to copy).
---
--- Tradeoff: PPU/APU state isn't reverted, so sprites and audio may
--- drift slightly behind the banner. In practice the RAM revert keeps
--- the game state machine stuck, so the next frame's PPU writes
--- regenerate the same scene — visually indistinguishable from a true
--- pause.
+-- Decision: when spec.freeze_game is provided (CV / MM2 / DK / DW),
+-- skip the universal freeze entirely — the per-game byte does the
+-- work. Only when spec.freeze_game is absent (Pac-Man) do we snapshot
+-- RAM as the fallback.
 -- ---------------------------------------------------------------------------
 local NES_RAM_DOMAIN = "RAM"
 local NES_RAM_SIZE   = 0x800   -- 2KB main RAM ($0000-$07FF)
@@ -198,14 +194,16 @@ local COUNTDOWN_STEPS = {
 -- caller should reload + restart from the top).
 local function play_countdown(spec)
     gui.clearGraphics()
-    -- Snapshot the moment countdown begins. Every iteration below
-    -- reloads this snapshot so the game can't progress visibly even
-    -- if the per-game freeze byte is unknown (e.g. Pac-Man).
-    freeze_snapshot()
+    -- Universal RAM freeze is FALLBACK-ONLY. When the spec provides a
+    -- per-game freeze byte (CV / MM2 / DK / DW), we use that exclusively
+    -- — it's surgical and doesn't risk the CPU/RAM desync that broke
+    -- Mega Man 2 when we layered RAM-snapshot on top.
+    local use_universal = not spec.has_per_game_freeze
+    if use_universal then freeze_snapshot() end
     for _, step in ipairs(COUNTDOWN_STEPS) do
         if step.tick then safe_play_sound("tock.wav") end
         for _ = 1, step.frames do
-            freeze_restore()
+            if use_universal then freeze_restore() end
             spec.freeze_game()
             -- Force every NES button to false so a turn-based game
             -- (Dragon Warrior, etc.) without a per-game freeze byte can't
@@ -220,7 +218,7 @@ local function play_countdown(spec)
     gui.clearGraphics()
     -- Final restore so play resumes EXACTLY from the snapshot frame —
     -- not from "snapshot + 1 frame" of input-neutralized state.
-    freeze_restore()
+    if use_universal then freeze_restore() end
     spec.release_game()
     return false
 end
@@ -240,11 +238,14 @@ local function draw_play_on_frames(spec, frames)
 end
 
 local function show_complete_screen_forever(spec, payload, time_text)
-    -- Snapshot the win moment so the banner phase can freeze the game
-    -- visually, regardless of whether spec.freeze_game does anything.
-    freeze_snapshot()
+    -- Universal freeze fallback: only when no per-game freeze byte is
+    -- available (Pac-Man). For CV/MM2/DK/DW the surgical per-game
+    -- freeze keeps the game halted under the banner without needing
+    -- to restore RAM each frame.
+    local use_universal = not spec.has_per_game_freeze
+    if use_universal then freeze_snapshot() end
     while true do
-        freeze_restore()
+        if use_universal then freeze_restore() end
         spec.freeze_game()
         neutralize_input()
         hud.banner.win()
@@ -259,12 +260,13 @@ local function show_complete_screen_forever(spec, payload, time_text)
 end
 
 local function show_failure_screen_forever(spec, time_text)
-    -- Same universal-freeze trick as the win banner — the player's
-    -- death frame stays on screen instead of the game continuing
-    -- to play out underneath the banner.
-    freeze_snapshot()
+    -- Same universal-freeze fallback as the win banner. For games
+    -- with a per-game freeze byte, the per-game write halts the
+    -- engine; for fallback games (Pac-Man) the RAM snapshot does it.
+    local use_universal = not spec.has_per_game_freeze
+    if use_universal then freeze_snapshot() end
     while true do
-        freeze_restore()
+        if use_universal then freeze_restore() end
         spec.freeze_game()
         neutralize_input()
         hud.banner.fail()
@@ -323,6 +325,12 @@ function M.run(spec_in)
         result              = spec_in.result            or function() return {} end,
         freeze_game         = spec_in.freeze_game       or noop,
         release_game        = spec_in.release_game      or noop,
+        -- Tracks whether the SPEC author supplied a per-game freeze.
+        -- Only when they didn't (Pac-Man) do we fall back to the
+        -- universal RAM-snapshot freeze. Per-game freezes are surgical
+        -- (one-byte writes) and don't suffer the CPU/RAM desync that
+        -- breaks Mega Man 2 if we layer a RAM snapshot on top.
+        has_per_game_freeze = (spec_in.freeze_game ~= nil),
         play_on_frames      = spec_in.play_on_frames    or 60,
         expected_rom_hashes = spec_in.expected_rom_hashes,
     }
