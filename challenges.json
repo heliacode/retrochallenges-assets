@@ -565,6 +565,26 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Get All Coins And Leave",
+          "description": "Underground secret room in World 1-1. Grab every single one of the 19 coins, then take the exit pipe out — but leave with fewer than 19 and the run is over.",
+          "lua": "nes\\supermariobros\\get-all-coins-and-leave\\get-all-coins-and-leave.lua",
+          "difficulty": "Medium",
+          "category": "speedrun",
+          "estimatedTime": "30 sec – 1 min",
+          "minPlausibleFrames": 600,
+          "flagBelowFrames":   900,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1200 },
+              { "grade": "SS",  "maxFrames":   1800 },
+              { "grade": "S",   "maxFrames":   3000 },
+              { "grade": "A",   "maxFrames":   6000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -598,10 +618,10 @@
     }
   ],
   "metadata": {
-    "version": "1.27.0",
-    "lastUpdated": "2026-05-11T00:00:00Z",
+    "version": "1.28.0",
+    "lastUpdated": "2026-05-11T19:00:00Z",
     "totalGames": 7,
-    "totalChallenges": 27,
+    "totalChallenges": 28,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
