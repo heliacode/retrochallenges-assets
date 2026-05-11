@@ -71,20 +71,24 @@ local function timer_expired()
        and read_u8(GAME_MODE) == 0x02
 end
 
--- True the frame Mario emerges back on the 1-1 surface — the level
--- palette flips off underground (0x03 → 0x00). We don't gate on
--- specifically 0x00 because any non-underground palette implies
--- "engine has loaded a different segment", which is all we care
--- about. If somehow the run leaves to castle / underwater, this
--- still fires correctly.
-local function left_underground()
-    return read_u8(LEVEL_PALETTE) ~= UNDERGROUND_PALETTE
-end
-
 -- ---------------------------------------------------------------------------
 -- Per-attempt state.
+--
+-- `entered_underground` is the latch that makes "left the underground"
+-- meaningful. The savestate starts Mario on the 1-1 surface (palette
+-- == 0x00) about to drop down the entry pipe, so naively checking
+-- "palette != 0x03" fires on frame 1 — before Mario has even entered
+-- the room. We arm the latch via on_frame() once we actually observe
+-- the underground palette, then "left" only counts after.
 -- ---------------------------------------------------------------------------
-local start_lives = 0
+local start_lives          = 0
+local entered_underground  = false
+
+-- True if Mario was inside the underground room and is no longer there.
+local function left_underground()
+    return entered_underground
+       and read_u8(LEVEL_PALETTE) ~= UNDERGROUND_PALETTE
+end
 
 -- ---------------------------------------------------------------------------
 -- Run the challenge.
@@ -98,7 +102,17 @@ challenge.run{
 
     setup = function(state)
         emu.frameadvance()
-        start_lives = read_u8(LIVES)
+        start_lives         = read_u8(LIVES)
+        entered_underground = false
+    end,
+
+    -- Latch the "we've been in the underground" flag the first frame
+    -- the engine reports the underground palette. Runs every play
+    -- frame, before win/fail.
+    on_frame = function(state)
+        if read_u8(LEVEL_PALETTE) == UNDERGROUND_PALETTE then
+            entered_underground = true
+        end
     end,
 
     -- Win = left the underground AND grabbed all 19 coins. Win is
