@@ -27,7 +27,6 @@ local LIVES        = 0x075A
 local TIMER_HI     = 0x07F8  -- BCD hundreds digit of in-game timer
 local TIMER_MID    = 0x07F9  -- BCD tens
 local TIMER_LO     = 0x07FA  -- BCD ones
-local SCORE_BASE   = 0x07DD  -- 6 BCD bytes — see read_score()
 
 -- ---------------------------------------------------------------------------
 -- Freeze trick: $0776 is SMB's pause register. Writing 1 stops gameplay
@@ -42,18 +41,6 @@ end
 
 local function release_game()
     write_u8(PAUSE_FLAG, 0)
-end
-
--- ---------------------------------------------------------------------------
--- Score is 6 BCD digits at $07DD-$07E2, one digit per byte (the in-game
--- value is always a multiple of 10 — the ones digit is unused and stays 0).
--- ---------------------------------------------------------------------------
-local function read_score()
-    local s = 0
-    for i = 0, 5 do
-        s = s * 10 + read_u8(SCORE_BASE + i)
-    end
-    return s * 10
 end
 
 -- Timer reaches 000 when all three digits are zero AND game is in level.
@@ -123,15 +110,11 @@ challenge.run{
     end,
 
     hud = function(state)
-        gui.text(10, 6, "SCORE")
-        hud.drawScore(48, 4, read_score(), 0)
-        gui.text(10, 24, "TIME")
-        hud.drawTime(48, 22, state.elapsed)
+        hud.drawTime(10, 4, state.elapsed)
     end,
 
     result = function(state)
         return {
-            score          = read_score(),
             completionTime = state.elapsed,
         }
     end,
