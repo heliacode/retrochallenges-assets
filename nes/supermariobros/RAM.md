@@ -74,7 +74,7 @@ Cart code: NES-SM. Mapper 0 (NROM-256), 32 KB PRG, 8 KB CHR-ROM.
 | Address | What | Notes |
 |---|---|---|
 | `$075A` | **Lives** | Decrements on death. Game over when this rolls under 0 (i.e. dies with 0). Display value = `read_u8(0x075A)`. |
-| `$075E` | **Coins** | BCD-style 0–99 single byte. Rolls to 0 + grants extra life every 100. |
+| `$075E` | **Coins** | **Binary** 0–99 single byte (not BCD — verified empirically). Rolls to 0 + grants extra life every 100. The HUD's display digits at `$07ED` / `$07EE` are computed by the engine via divmod on this byte; that two-byte split is the giveaway that `$075E` itself is plain binary. Read with `read_u8`, not a BCD decoder. |
 | `$075F` | **World** (0-indexed) | `0` = World 1, `1` = World 2, ..., `7` = World 8. |
 | `$0760` | **Level** (0-indexed within world) | `0` = first area (e.g. 1-1), `1` = second area (1-2), etc. Castle is typically `3`. |
 | `$0750` | Area offset | Internal area index (see Data Crystal for the full lookup). |

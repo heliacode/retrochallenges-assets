@@ -26,7 +26,11 @@ local write_u8 = memory.write_u8 or memory.writebyte
 local GAME_MODE      = 0x0770  -- 0x02 = in-level gameplay
 local PAUSE_FLAG     = 0x0776  -- nonzero = paused (used to freeze)
 local PLAYER_STATE   = 0x000E  -- player-state register (see ENTERING_EXIT_PIPE)
-local COINS          = 0x075E  -- BCD: 0x19 = 19 coins
+local COINS          = 0x075E  -- BINARY 0..99; the engine writes the BCD
+                               -- display digits to $07ED/$07EE separately.
+                               -- 19 coins reads as 0x13 here, NOT 0x19 —
+                               -- earlier BCD-decoded reads of this byte
+                               -- made "win at 19 coins" fail spuriously.
 local LIVES          = 0x075A
 local TIMER_HI       = 0x07F8
 local TIMER_MID      = 0x07F9
@@ -56,8 +60,7 @@ local function release_game()
     write_u8(PAUSE_FLAG, 0)
 end
 
-local function bcd_byte(b) return math.floor(b / 16) * 10 + (b % 16) end
-local function read_coins() return bcd_byte(read_u8(COINS)) end
+local function read_coins() return read_u8(COINS) end
 
 local function timer_expired()
     return read_u8(TIMER_HI)  == 0
