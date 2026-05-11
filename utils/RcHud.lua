@@ -294,6 +294,84 @@ function M.drawStandardHud(state, opts)
 end
 
 -- ---------------------------------------------------------------------------
+-- Image-font text rendering (banner overlays).
+--
+-- Uses the `low_pixels_Text/` glyph set — 7px-tall uppercase A-Z plus
+-- 0-9 + a handful of punctuation, rendered at 2x scale (~14px tall) so
+-- it reads cleanly on the banner overlays without dominating the 256x240
+-- playfield.
+--
+-- This is intentionally distinct from drawDigits / drawTime (which use
+-- the larger `_sSmall*blue` digit set for the in-game HUD): the in-game
+-- HUD wants big readable numbers, the banner labels want a compact font
+-- that fits a whole word.
+--
+-- Lowercase input is upper-cased before lookup. Spaces advance without
+-- drawing. Colon is two stacked sprites (colon_top + colon_bot) in this
+-- font. Missing glyphs fall back to gui.text for that character so a
+-- partial font set still produces output.
+-- ---------------------------------------------------------------------------
+local TEXT_GLYPH_DIR     = "low_pixels_Text"
+local TEXT_DRAW_H        = 14   -- 2x of the 7px source
+local TEXT_LETTER_W      = 14   -- visual letter cell width
+local TEXT_ADVANCE       = 16   -- per-char advance (cell + 2px gap)
+local TEXT_NARROW_W      = 8    -- I, ".", ",", ":", "'" — render at half width
+local TEXT_NARROW_ADV    = 10
+local TEXT_SPACE_ADV     = 10
+
+-- ASCII → glyph filename stem.
+local TEXT_GLYPH = {
+    ["A"] = "A", ["B"] = "B", ["C"] = "C", ["D"] = "D", ["E"] = "E", ["F"] = "F",
+    ["G"] = "G", ["H"] = "H", ["I"] = "I", ["J"] = "J", ["K"] = "K", ["L"] = "L",
+    ["M"] = "M", ["N"] = "N", ["O"] = "O", ["P"] = "P", ["Q"] = "Q", ["R"] = "R",
+    ["S"] = "S", ["T"] = "T", ["U"] = "U", ["V"] = "V", ["W"] = "W", ["X"] = "X",
+    ["Y"] = "Y", ["Z"] = "Z",
+    ["0"] = "0", ["1"] = "1", ["2"] = "2", ["3"] = "3", ["4"] = "4",
+    ["5"] = "5", ["6"] = "6", ["7"] = "7", ["8"] = "8", ["9"] = "9",
+    ["-"] = "dash",   ["."] = "period", [","] = "comma", ["'"] = "apos",
+}
+local TEXT_NARROW_SET = {
+    ["I"] = true, ["1"] = true, ["."] = true, [","] = true, ["'"] = true,
+}
+
+function M.drawText(x, y, str)
+    str = string.upper(tostring(str or ""))
+    local cx = x
+    for i = 1, #str do
+        local ch = str:sub(i, i)
+        if ch == " " then
+            cx = cx + TEXT_SPACE_ADV
+        elseif ch == ":" then
+            -- Colon = two stacked dots. Sized to roughly match the
+            -- vertical span of letter glyphs around it.
+            local top_rel = TEXT_GLYPH_DIR .. "/colon_top.png"
+            local bot_rel = TEXT_GLYPH_DIR .. "/colon_bot.png"
+            if M.assetExists(top_rel) and M.assetExists(bot_rel) then
+                gui.drawImage(asset_path(top_rel), cx, y + 4,  4, 4)
+                gui.drawImage(asset_path(bot_rel), cx, y + 10, 4, 4)
+                cx = cx + TEXT_NARROW_ADV
+            else
+                gui.text(cx, y, ":")
+                cx = cx + 6
+            end
+        else
+            local glyph = TEXT_GLYPH[ch]
+            local rel = glyph and (TEXT_GLYPH_DIR .. "/" .. glyph .. ".png")
+            if rel and M.assetExists(rel) then
+                local narrow = TEXT_NARROW_SET[ch]
+                local draw_w = narrow and TEXT_NARROW_W or TEXT_LETTER_W
+                local advance = narrow and TEXT_NARROW_ADV or TEXT_ADVANCE
+                gui.drawImage(asset_path(rel), cx, y, draw_w, TEXT_DRAW_H)
+                cx = cx + advance
+            else
+                gui.text(cx, y, ch)
+                cx = cx + 6
+            end
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- Key prompts (24x24 sprites under keys/, fallback to "[X] Label" text)
 -- ---------------------------------------------------------------------------
 local KEY_W = 24
@@ -314,7 +392,7 @@ function M.drawKeyPrompt(x, y, key, label)
     local rel = "keys/k_" .. lower .. ".png"
     if M.assetExists(rel) then
         gui.drawImage(asset_path(rel), x, y)
-        if label ~= "" then gui.text(x + KEY_W + KEY_GAP, y + 6, label) end
+        if label ~= "" then M.drawText(x + KEY_W + KEY_GAP, y + 4, label) end
     else
         gui.text(x, y, "[" .. key .. "] " .. label)
     end

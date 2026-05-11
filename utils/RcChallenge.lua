@@ -249,11 +249,17 @@ local function show_complete_screen_forever(spec, payload, time_text)
         spec.freeze_game()
         neutralize_input()
         hud.banner.win()
-        if payload.completionTime then gui.text(10, 200, "Final Time:  " .. time_text) end
-        if payload.score then           gui.text(10, 220, "Final Score: " .. tostring(payload.score)) end
-        -- Pixel-art [R] glyph + label, falls back to "[R] Retry" text if
-        -- the key sprite isn't shipped.
-        hud.drawKeyPrompt(10, 232, "R", "Retry — or return to RetroChallenges")
+        if payload.completionTime then
+            hud.drawText(10, 195, "FINAL TIME")
+            hud.drawText(10, 213, time_text)
+        end
+        if payload.score then
+            hud.drawText(140, 195, "SCORE")
+            hud.drawText(140, 213, tostring(payload.score))
+        end
+        -- Pixel-art [R] glyph + image-font label, falls back to text if
+        -- either asset is missing.
+        hud.drawKeyPrompt(10, 232, "R", "RETRY")
         if r_pressed() then return end
         emu.frameadvance()
     end
@@ -270,8 +276,9 @@ local function show_failure_screen_forever(spec, time_text)
         spec.freeze_game()
         neutralize_input()
         hud.banner.fail()
-        gui.text(10, 200, "Failed at: " .. time_text)
-        hud.drawKeyPrompt(10, 220, "R", "Retry — or return to RetroChallenges")
+        hud.drawText(10, 195, "FAILED AT")
+        hud.drawText(10, 213, time_text)
+        hud.drawKeyPrompt(10, 232, "R", "RETRY")
         if r_pressed() then return end
         emu.frameadvance()
     end
