@@ -66,8 +66,16 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Per-attempt state.
+--
+-- `prev_lives` runs an edge-detector across the lives counter, NOT an
+-- absolute compare against starting value. Reason: 1-1 has a famous
+-- hidden 1-Up in the brick row above the first pipe — if a player
+-- grabs it and *then* dies, lives goes 3 → 4 → 3 and an absolute
+-- compare ("now < start") would miss the death. The edge pattern
+-- also handles the (rarer) "die twice across the same 1-1 run"
+-- scenario correctly because we update prev_lives after every read.
 -- ---------------------------------------------------------------------------
-local start_lives = 0
+local prev_lives = 0
 
 -- ---------------------------------------------------------------------------
 -- Run the challenge.
@@ -81,7 +89,7 @@ challenge.run{
 
     setup = function(state)
         emu.frameadvance()
-        start_lives = read_u8(LIVES)
+        prev_lives = read_u8(LIVES)
     end,
 
     -- Win = Mario is sliding down the flagpole of 1-1. The flagpole-slide
@@ -97,10 +105,19 @@ challenge.run{
            and read_u8(LEVEL) == 0
     end,
 
-    -- Fail = dropped a life (any cause — pit, enemy, timer-zero-death).
-    -- Watching the lives counter catches all of these uniformly.
+    -- Fail = dropped a life (any cause — pit, Goomba/Koopa/Piranha Plant
+    -- contact as small Mario, timer-zero death). Watching the lives
+    -- counter catches all of these uniformly.
+    --
+    -- Edge-trigger on decrement so a 1-Up before the death doesn't mask
+    -- it (see prev_lives comment above). We also keep an explicit
+    -- timer-zero check so the fail banner fires the frame the clock
+    -- empties rather than waiting the ~30 frames for the death
+    -- animation to actually decrement lives.
     fail = function()
-        if read_u8(LIVES) < start_lives then return true end
+        local now = read_u8(LIVES)
+        if now < prev_lives then return true end
+        prev_lives = now
         if timer_expired() then return true end
         return false
     end,
