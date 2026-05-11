@@ -1,10 +1,12 @@
 -- Mario Bros. (1983 NES port) — Reach Phase 5
--- Single-life run through the arcade-style endless phases. Win when
--- the phase counter rolls to 5; fail if you drop a life along the way.
 --
--- Savestate target: title screen → 1P Game A selected → first frame of
--- Phase 1 with Mario standing on the lowest platform. (We don't write
--- starting RAM — the savestate IS the starting state.)
+-- NO SAVESTATE. The framework reboots the core to power-on, then this
+-- challenge's `setup` mashes Start to skip the title / GAME A-B select
+-- screen and lands the player on Phase 1, frame 0. The 3-2-1-GO
+-- countdown then plays over the paused first frame and the clock
+-- starts when Mario gets control.
+--
+-- Win: phase counter reads 5 (cleared four phases). Fail: lost a life.
 
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
@@ -12,21 +14,20 @@ local challenge = require("RcChallenge")
 local read_u8  = memory.read_u8  or memory.readbyte
 
 -- ---------------------------------------------------------------------------
--- Memory map (Mario Bros. — mapper 0 NROM)
--- Source: nes/mariobros/RAM.md, derived from Data Crystal.
+-- Memory map — verified against Data Crystal's Mario Bros. RAM map.
+-- https://datacrystal.tcrf.net/wiki/Mario_Bros./RAM_map
 -- ---------------------------------------------------------------------------
 local PHASE     = 0x0041  -- displayed phase number, 1-based
-local LIVES_P1  = 0x0048  -- decrements on death; game over when it would go below 0
+local LIVES_P1  = 0x0048  -- decrements on death
 
--- BCD score: 3 bytes at $0095-$0097, two digits each.
+-- BCD score: 3 bytes at $0095-$0097, two digits each (high byte first).
 local SCORE_HI  = 0x0095
 local SCORE_MID = 0x0096
 local SCORE_LO  = 0x0097
 
--- Mario Bros. doesn't have a documented single-byte pause flag — we
--- skip per-game freeze and let the framework's universal RAM-snapshot
--- fallback handle it during the countdown. (Per the MM2 regression fix:
--- only games without a known freeze byte should rely on universal.)
+-- Mario Bros. has no documented single-byte pause flag, so we don't
+-- supply freeze_game / release_game — the framework falls back to its
+-- universal RAM-snapshot freeze during countdown and banners.
 
 local function bcd(b) return math.floor(b / 16) * 10 + (b % 16) end
 
@@ -34,6 +35,25 @@ local function read_score()
     return bcd(read_u8(SCORE_HI))  * 10000
          + bcd(read_u8(SCORE_MID)) *   100
          + bcd(read_u8(SCORE_LO))
+end
+
+-- ---------------------------------------------------------------------------
+-- Boot-to-Phase-1: alternate-frame Start presses until $0041 reads 1.
+-- At power-on $0041 is 0 (or uninitialised); after Start is consumed on
+-- the title screen the game initialises Phase 1 and sets it to 1. The
+-- on/off alternation handles the title's edge-only Start detection.
+-- ---------------------------------------------------------------------------
+local function press_start_until(predicate, max_frames)
+    max_frames = max_frames or 600
+    for f = 0, max_frames - 1 do
+        joypad.set({ Start = (f % 2 == 0) }, 1)
+        emu.frameadvance()
+        if predicate() then
+            joypad.set({}, 1)
+            return true
+        end
+    end
+    return false
 end
 
 -- ---------------------------------------------------------------------------
@@ -45,23 +65,32 @@ local start_lives = 0
 -- Run the challenge.
 -- ---------------------------------------------------------------------------
 challenge.run{
-    savestate           = "savestates/reach-phase-5.state",
     expected_rom_hashes = { "A684D6F5E0FA39B603038F041EE6E853203B44AD" },  -- Mario Bros., iNES file SHA1
 
     setup = function(state)
-        emu.frameadvance()
+        -- Boot delay so the title intro initialises before we send input.
+        for _ = 1, 60 do emu.frameadvance() end
+
+        local ok = press_start_until(function()
+            return read_u8(PHASE) == 1
+        end, 600)
+
+        if not ok then
+            console.log("[reach-phase-5] setup: failed to reach Phase 1 after 600 frames — RAM watch may show $0041 stuck at 0; check the title-screen path on this dump")
+        end
+
         start_lives = read_u8(LIVES_P1)
     end,
 
-    -- Win when the displayed phase number reaches 5 (i.e. you've cleared
-    -- phases 1-4). Bonus phases between regular phases also increment
-    -- $0041, so "reach phase 5" includes any bonus-phase detours.
+    -- Win on the displayed phase rolling to 5. Bonus phases between
+    -- regular phases also tick $0041, so "reach phase 5" includes any
+    -- bonus-phase detours en route.
     win = function()
         return read_u8(PHASE) >= 5
     end,
 
-    -- Fail = lost a life. Game-over screen is also reachable via lives
-    -- rollover but the decrement edge catches that first.
+    -- Fail = lost a life. Game-over screen would also satisfy this via
+    -- the rollover, but the decrement edge catches it earlier.
     fail = function()
         return read_u8(LIVES_P1) < start_lives
     end,

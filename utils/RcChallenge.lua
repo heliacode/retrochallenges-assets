@@ -314,8 +314,17 @@ end
 -- ---------------------------------------------------------------------------
 function M.run(spec_in)
     -- Defaults / spec normalization
+    --
+    -- `savestate` is optional. A challenge that drives the game from
+    -- power-on (e.g. by scripting joypad input through the title screen
+    -- in `setup`) just omits the field. The framework then skips the
+    -- savestate-load step and hands the (booted-but-untouched) state to
+    -- `setup` directly. Useful for examples / first-run docs where we
+    -- don't want to ship a .state binary, or for games whose title
+    -- screen is short enough that the savestate is more overhead than
+    -- it's worth.
     local spec = {
-        savestate           = assert(spec_in.savestate, "RcChallenge: spec.savestate is required"),
+        savestate           = spec_in.savestate,
         win                 = assert(spec_in.win,       "RcChallenge: spec.win is required"),
         fail                = spec_in.fail              or always_false,
         setup               = spec_in.setup             or noop,
@@ -363,6 +372,23 @@ function M.run(spec_in)
         RC.GAME or "?", RC.CHALLENGE_NAME or "?", RC.USERNAME or "?"))
 
     local function load_savestate_or_show_missing()
+        -- Savestate-less challenges (spec.savestate == nil) intentionally
+        -- run against power-on / booted RAM; setup() is expected to drive
+        -- the game into the desired starting state via joypad scripting.
+        -- Skip the load entirely and trust setup() to position the game.
+        --
+        -- We reboot_core() on every iteration so retries (R-key) reset
+        -- cleanly back to power-on RAM. Without this, R would just re-
+        -- run setup() on top of whatever state the game was already in,
+        -- which usually means "press Start" does nothing because we're
+        -- already past the title screen.
+        if not spec.savestate then
+            if client and client.reboot_core then
+                pcall(client.reboot_core)
+            end
+            console.log("RcChallenge: no savestate — setup() will drive boot-to-start")
+            return true
+        end
         -- BizHawk's savestate.load() prints "could not find file: ..." but
         -- doesn't raise a Lua error, so pcall always returns ok=true. Pre-
         -- check existence ourselves before handing off, otherwise the
