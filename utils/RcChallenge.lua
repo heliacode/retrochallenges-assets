@@ -233,11 +233,25 @@ local function play_countdown(spec)
         for _ = 1, step.frames do
             if use_universal then freeze_restore() end
             spec.freeze_game()
-            -- Force every NES button to false so a turn-based game
-            -- (Dragon Warrior, etc.) without a per-game freeze byte can't
-            -- accept input during the countdown. See neutralize_input
-            -- definition for why an empty-table set isn't enough.
-            neutralize_input()
+            -- Force every NES button to false ONLY for games that lack a
+            -- per-game freeze byte (Dragon Warrior, Pac-Man, Mario Bros,
+            -- Kung Fu). Those engines accept input even while we hold
+            -- the universal RAM snapshot, so without neutralizing the
+            -- player could turn-advance / walk during the countdown.
+            --
+            -- For games WITH a per-game freeze byte (SMB / CV / MM2 /
+            -- DK), the freeze byte halts the engine — input
+            -- neutralisation is redundant AND, on a USB gamepad, the
+            -- all-false override appears to leave at least one button
+            -- sticky after countdown ends (see TASEmulators/BizHawk
+            -- #2310/#2656/#1206 on joypad.set persistence). Symptom on
+            -- SMB: Down+Right diagonals drop intermittently during
+            -- play. Skipping the call eliminates the override entirely
+            -- for those games — the joypad.set({}, 1) reset still runs
+            -- after the loop as belt-and-suspenders.
+            if use_universal then
+                neutralize_input()
+            end
             if asset_exists(step.name) then draw_asset(step.name) end
             if r_pressed() then return true end
             emu.frameadvance()
