@@ -1,8 +1,9 @@
 -- Super Mario Bros. (World) — Beat 1-2
 --
--- Get out of 1-2 alive — either by touching the regular flagpole at
--- the end OR by taking one of the warp-zone pipes. Both count.
--- Single life: pit / enemy / timer-zero ends the run.
+-- Touch the World 1-2 flagpole as fast as you can. The 1-2 warp-zone
+-- pipes don't count — the only valid finish is the flagpole at the
+-- end of the regular path. Single life: pit / enemy / timer-zero
+-- ends the run.
 
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
@@ -14,7 +15,7 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- Memory map — verified against Data Crystal's SMB RAM map.
 -- ---------------------------------------------------------------------------
 local GAME_MODE      = 0x0770  -- 0x02 = in-level gameplay
-local OPERATION_MODE = 0x0772  -- 0x04 = end-of-level animation (flagpole→castle)
+local PLAYER_FLOAT   = 0x001D  -- 0x03 = sliding down flagpole
 local PAUSE_FLAG     = 0x0776  -- nonzero = paused
 local WORLD          = 0x075F  -- 0-indexed; 0 = World 1
 local LEVEL          = 0x0760  -- 0-indexed within world; 1 = X-2
@@ -57,24 +58,22 @@ local start_world = 0
 local start_level = 0
 local prev_lives  = 0
 
--- 1-2 has two completion paths: the regular flagpole at the end (which
--- triggers $0772 == 0x04, same as beat-1-1) AND the warp zone (three
--- pipes Mario drops into to skip ahead to W2/3/4). The warp-pipe path
--- doesn't fire the end-of-level animation — instead the world/level
--- bytes change directly when Mario enters one of the pipes.
-local function left_starting_level_alive()
-    -- Flagpole still in 1-2: $0772 latches 0x04 before the level
-    -- transition advances world/level, so we have to check this OR.
-    if read_u8(OPERATION_MODE) == 0x04
-       and read_u8(WORLD) == start_world
-       and read_u8(LEVEL) == start_level then
-        return true
-    end
-    -- Either path's eventual outcome: world or level rolls off start.
-    if read_u8(WORLD) ~= start_world or read_u8(LEVEL) ~= start_level then
-        return true
-    end
-    return false
+-- Win = Mario is sliding down the 1-2 flagpole. $001D == 0x03 latches
+-- the instant the flagpole is touched (well before the level transition
+-- swaps world/level bytes), so the timer locks at the moment of contact
+-- rather than waiting for the post-flagpole walk + castle animation to
+-- finish. Warp-zone completion is intentionally NOT a win for this
+-- challenge — the rule is "hit the flagpole".
+--
+-- The GAME_MODE gate (must be 0x02 = in-level gameplay) keeps the
+-- predicate from false-firing on uninitialised RAM at savestate load,
+-- and the (world, level) gate keeps it from latching on any later
+-- level's flagpole if the run ever extends past the starting one.
+local function flagpole_touched_in_starting_level()
+    return read_u8(GAME_MODE)    == 0x02
+       and read_u8(PLAYER_FLOAT) == 0x03
+       and read_u8(WORLD)        == start_world
+       and read_u8(LEVEL)        == start_level
 end
 
 challenge.run{
@@ -91,7 +90,7 @@ challenge.run{
         prev_lives  = read_u8(LIVES)
     end,
 
-    win = left_starting_level_alive,
+    win = flagpole_touched_in_starting_level,
 
     fail = function()
         local now = read_u8(LIVES)
