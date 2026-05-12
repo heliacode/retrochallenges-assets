@@ -1,0 +1,3 @@
+# Python bytecode from the asset-splitting tools in _tools/.
+__pycache__/
+*.pyc
