@@ -42,31 +42,40 @@ local function timer_expired()
        and read_u8(GAME_MODE) == 0x02
 end
 
+-- ---------------------------------------------------------------------------
+-- Per-attempt state.
+--
+-- We capture the starting (world, level) bytes in setup rather than
+-- hard-coding "(0, 1) == 1-2". An earlier version that assumed the
+-- savestate would read WORLD=0 / LEVEL=1 on frame 0 fired the win
+-- predicate instantly — either the prelevel splash leaves the bytes
+-- uninitialised for a few frames, or my address labels for $075F /
+-- $0760 are swapped vs. what this savestate actually holds. Either
+-- way, "left the level you started in" is the unambiguous signal.
+-- ---------------------------------------------------------------------------
+local start_world = 0
+local start_level = 0
+local prev_lives  = 0
+
 -- 1-2 has two completion paths: the regular flagpole at the end (which
 -- triggers $0772 == 0x04, same as beat-1-1) AND the warp zone (three
 -- pipes Mario drops into to skip ahead to W2/3/4). The warp-pipe path
 -- doesn't fire the end-of-level animation — instead the world/level
--- bytes change directly when Mario enters one of the pipes. Detect
--- either:
---   - $0772 == 0x04 while still in 1-2  → flagpole completion
---   - world != 0 OR level != 1          → warp-zone completion (or
---                                          regular-path post-flagpole
---                                          transition)
-local function left_1_2_alive()
+-- bytes change directly when Mario enters one of the pipes.
+local function left_starting_level_alive()
+    -- Flagpole still in 1-2: $0772 latches 0x04 before the level
+    -- transition advances world/level, so we have to check this OR.
     if read_u8(OPERATION_MODE) == 0x04
-       and read_u8(WORLD) == 0 and read_u8(LEVEL) == 1 then
+       and read_u8(WORLD) == start_world
+       and read_u8(LEVEL) == start_level then
         return true
     end
-    if read_u8(WORLD) ~= 0 or read_u8(LEVEL) ~= 1 then
+    -- Either path's eventual outcome: world or level rolls off start.
+    if read_u8(WORLD) ~= start_world or read_u8(LEVEL) ~= start_level then
         return true
     end
     return false
 end
-
--- ---------------------------------------------------------------------------
--- Per-attempt state.
--- ---------------------------------------------------------------------------
-local prev_lives = 0
 
 challenge.run{
     savestate           = "savestates/beat-1-2.state",
@@ -77,10 +86,12 @@ challenge.run{
 
     setup = function(state)
         emu.frameadvance()
-        prev_lives = read_u8(LIVES)
+        start_world = read_u8(WORLD)
+        start_level = read_u8(LEVEL)
+        prev_lives  = read_u8(LIVES)
     end,
 
-    win = left_1_2_alive,
+    win = left_starting_level_alive,
 
     fail = function()
         local now = read_u8(LIVES)
