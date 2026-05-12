@@ -627,41 +627,13 @@
           }
         }
       ]
-    },
-    {
-      "name": "Mario Bros.",
-      "description": "The 1983 arcade port — endless phases of shellcreepers, sidesteppers, and freezies",
-      "rom" : "roms\\Mario Bros..nes",
-      "boxArtUrl": "https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System/master/Named_Boxarts/Mario%20Bros.%20(World).png",
-      "challenges": [
-        {
-          "name": "Reach Phase 5",
-          "description": "Clear four phases of arcade Mario Bros. without dying. Bonus stages don't count as deaths but they don't pause the timer either.",
-          "lua": "nes\\mariobros\\reach-phase-5\\reach-phase-5.lua",
-          "difficulty": "Medium",
-          "category": "speedrun",
-          "estimatedTime": "3-7 minutes",
-          "minPlausibleFrames": 6000,
-          "flagBelowFrames":   9000,
-          "grades": {
-            "by": "time",
-            "thresholds": [
-              { "grade": "SSS", "maxFrames":  12000 },
-              { "grade": "SS",  "maxFrames":  18000 },
-              { "grade": "S",   "maxFrames":  27000 },
-              { "grade": "A",   "maxFrames":  54000 },
-              { "grade": "B",   "maxFrames": 999999 }
-            ]
-          }
-        }
-      ]
     }
   ],
   "metadata": {
-    "version": "1.29.0",
-    "lastUpdated": "2026-05-12T08:45:00Z",
-    "totalGames": 7,
-    "totalChallenges": 30,
+    "version": "1.30.0",
+    "lastUpdated": "2026-05-12T09:30:00Z",
+    "totalGames": 6,
+    "totalChallenges": 29,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
