@@ -585,6 +585,46 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Beat 1-2 — Fastest Time",
+          "description": "Get out of World 1-2 alive — by the flagpole or via the warp zone, either counts. One life. Pits, enemies and the in-game timer all end the run.",
+          "lua": "nes\\supermariobros\\beat-1-2\\beat-1-2.lua",
+          "difficulty": "Easy",
+          "category": "speedrun",
+          "estimatedTime": "30 sec – 3 min",
+          "minPlausibleFrames": 1500,
+          "flagBelowFrames":   1800,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1800 },
+              { "grade": "SS",  "maxFrames":   3000 },
+              { "grade": "S",   "maxFrames":   6000 },
+              { "grade": "A",   "maxFrames":  12000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
+          "name": "Get 20 Coins",
+          "description": "Twenty coins, one life. Where you grab them is your problem.",
+          "lua": "nes\\supermariobros\\get-20-coins\\get-20-coins.lua",
+          "difficulty": "Easy",
+          "category": "score",
+          "estimatedTime": "30 sec – 2 min",
+          "minPlausibleFrames": 600,
+          "flagBelowFrames":   900,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1500 },
+              { "grade": "SS",  "maxFrames":   2400 },
+              { "grade": "S",   "maxFrames":   4500 },
+              { "grade": "A",   "maxFrames":   9000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -618,10 +658,10 @@
     }
   ],
   "metadata": {
-    "version": "1.28.0",
-    "lastUpdated": "2026-05-11T19:00:00Z",
+    "version": "1.29.0",
+    "lastUpdated": "2026-05-12T08:45:00Z",
     "totalGames": 7,
-    "totalChallenges": 28,
+    "totalChallenges": 30,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
