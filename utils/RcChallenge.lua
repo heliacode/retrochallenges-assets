@@ -181,6 +181,30 @@ local function freeze_restore()
 end
 
 -- ---------------------------------------------------------------------------
+-- NES audio mute toggle.
+--
+-- Muted during the 3-2-1-GO countdown and during the win / fail
+-- banner phases so the game's loop music doesn't fight the
+-- framework's tock.wav / completion jingle (those play through a
+-- separate OS-level audio path and aren't affected by this call).
+-- Restored before play_attempt so gameplay audio is normal.
+--
+-- BizHawk exposes two casings of this API across versions. Try
+-- both, pcall so a missing client API on some build doesn't crash
+-- the challenge runner.
+-- ---------------------------------------------------------------------------
+local function set_emu_sound(on)
+    if not client then return end
+    if type(client.SetSoundOn) == "function" then
+        pcall(client.SetSoundOn, on)
+        return
+    end
+    if type(client.setsoundon) == "function" then
+        pcall(client.setsoundon, on)
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- Internal: countdown
 -- ---------------------------------------------------------------------------
 local COUNTDOWN_STEPS = {
@@ -194,6 +218,10 @@ local COUNTDOWN_STEPS = {
 -- caller should reload + restart from the top).
 local function play_countdown(spec)
     gui.clearGraphics()
+    -- Mute the NES core during the countdown so the game's looping
+    -- music doesn't bleed under the 3-2-1-GO overlay. The framework's
+    -- tock.wav plays via a separate OS audio path and stays audible.
+    set_emu_sound(false)
     -- Universal RAM freeze is FALLBACK-ONLY. When the spec provides a
     -- per-game freeze byte (CV / MM2 / DK / DW), we use that exclusively
     -- — it's surgical and doesn't risk the CPU/RAM desync that broke
@@ -232,6 +260,8 @@ local function play_countdown(spec)
     -- so this is safe regardless of whether the bug bites on a
     -- given build.
     joypad.set({}, 1)
+    -- Restore NES audio for the actual play phase.
+    set_emu_sound(true)
     return false
 end
 
@@ -250,6 +280,9 @@ local function draw_play_on_frames(spec, frames)
 end
 
 local function show_complete_screen_forever(spec, payload, time_text)
+    -- Silence the NES core for the celebration screen so the looping
+    -- level music doesn't fight the win jingle.
+    set_emu_sound(false)
     -- Universal freeze fallback: only when no per-game freeze byte is
     -- available (Pac-Man). For CV/MM2/DK/DW the surgical per-game
     -- freeze keeps the game halted under the banner without needing
@@ -278,6 +311,9 @@ local function show_complete_screen_forever(spec, payload, time_text)
 end
 
 local function show_failure_screen_forever(spec, time_text)
+    -- Silence the NES core for the failure screen too — the looping
+    -- level music after a death is a long-standing audio complaint.
+    set_emu_sound(false)
     -- Same universal-freeze fallback as the win banner. For games
     -- with a per-game freeze byte, the per-game write halts the
     -- engine; for fallback games (Pac-Man) the RAM snapshot does it.
