@@ -220,6 +220,18 @@ local function play_countdown(spec)
     -- not from "snapshot + 1 frame" of input-neutralized state.
     if use_universal then freeze_restore() end
     spec.release_game()
+    -- Explicitly release every button override the countdown loop
+    -- installed via neutralize_input(). BizHawk has a documented
+    -- joypad.set persistence quirk (see TASEmulators/BizHawk#2310,
+    -- #2656, #1206) where overrides can linger across frames; the
+    -- last frame of the countdown set every NES button to `false`,
+    -- and without this empty-table pass we've seen the physical-
+    -- controller passthrough get partially stuck (Down+Right
+    -- diagonals dropping during SMB play). Empty-table set is the
+    -- documented no-op-override per BizHawk's own Input_Display.lua,
+    -- so this is safe regardless of whether the bug bites on a
+    -- given build.
+    joypad.set({}, 1)
     return false
 end
 
