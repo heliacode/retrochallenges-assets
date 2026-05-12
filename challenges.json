@@ -627,13 +627,41 @@
           }
         }
       ]
+    },
+    {
+      "name": "Kung Fu",
+      "description": "Punch, kick, and headbutt your way up five floors of Mr. X's temple to rescue Sylvia. The 1985 NES port of the arcade classic.",
+      "rom" : "roms\\kungfu.nes",
+      "boxArtUrl": "https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System/master/Named_Boxarts/Kung%20Fu%20(Japan%2C%20USA).png",
+      "challenges": [
+        {
+          "name": "Complete Floor 1",
+          "description": "Clear the first floor and defeat the Stick Man boss as fast as you can. One life. Die once and the run is over.",
+          "lua": "nes\\kungfu\\complete-floor-1\\complete-floor-1.lua",
+          "difficulty": "Easy",
+          "category": "speedrun",
+          "estimatedTime": "1-3 minutes",
+          "minPlausibleFrames": 1800,
+          "flagBelowFrames":   2400,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   2400 },
+              { "grade": "SS",  "maxFrames":   3600 },
+              { "grade": "S",   "maxFrames":   6000 },
+              { "grade": "A",   "maxFrames":  12000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        }
+      ]
     }
   ],
   "metadata": {
-    "version": "1.30.0",
-    "lastUpdated": "2026-05-12T09:30:00Z",
-    "totalGames": 6,
-    "totalChallenges": 29,
+    "version": "1.31.0",
+    "lastUpdated": "2026-05-12T10:30:00Z",
+    "totalGames": 7,
+    "totalChallenges": 30,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
