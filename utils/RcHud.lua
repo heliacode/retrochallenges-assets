@@ -417,6 +417,36 @@ function M.banner.fail()          draw_banner_fullscreen("failed.png",        "C
 function M.banner.personalBest()  draw_banner_fullscreen("personal_best.png", "NEW BEST!",           120) end
 
 -- ---------------------------------------------------------------------------
+-- Input-display overlay (debug).
+--
+-- Renders a compact readout of joypad.get(1) so the player can SEE
+-- which NES buttons BizHawk thinks are currently held — useful when
+-- diagnosing "diagonal drops" / NKRO-like symptoms on gamepad. Pads
+-- the readout with dashes for un-pressed buttons so the position of
+-- each glyph is stable frame-to-frame; that way a missing diagonal
+-- shows as a literal "-" gap instead of a confusing reflow.
+--
+-- Usage from a challenge hud():
+--   hud.drawInputDisplay(180, 4)
+-- ---------------------------------------------------------------------------
+local INPUT_DISPLAY_ORDER = { "Up", "Down", "Left", "Right", "A", "B", "Start", "Select" }
+local INPUT_DISPLAY_GLYPH = {
+    Up = "U", Down = "D", Left = "L", Right = "R",
+    A = "A", B = "B", Start = "+", Select = "-",
+}
+
+function M.drawInputDisplay(x, y)
+    if not joypad or not joypad.get then return end
+    local ok, pad = pcall(joypad.get, 1)
+    if not ok or type(pad) ~= "table" then return end
+    local parts = {}
+    for _, name in ipairs(INPUT_DISPLAY_ORDER) do
+        parts[#parts + 1] = pad[name] and INPUT_DISPLAY_GLYPH[name] or "-"
+    end
+    gui.text(x, y, table.concat(parts, " "))
+end
+
+-- ---------------------------------------------------------------------------
 -- Rank medals (24x24). Useful for "you placed #N" overlays.
 -- 1 -> gold, 2 -> silver, 3 -> bronze; rank 4+ falls back to "#N" text.
 -- ---------------------------------------------------------------------------
