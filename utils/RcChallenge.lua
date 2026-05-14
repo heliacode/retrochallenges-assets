@@ -193,34 +193,63 @@ end
 -- both, pcall so a missing client API on some build doesn't crash
 -- the challenge runner.
 -- ---------------------------------------------------------------------------
+local _sound_attempt_logged = false
 local function set_emu_sound(on)
     if not client then return end
-    if type(client.SetSoundOn) == "function" then
-        pcall(client.SetSoundOn, on)
-        return
+    -- Try every casing BizHawk has used across 1.x/2.x versions, plus
+    -- one diagnostic log line so we can tell from the Lua console
+    -- whether ANY of these resolved on the player's build.
+    local names = {
+        "SetSoundOn", "setsoundon",
+        "SetSound",   "setsound",
+        "SoundOn",    "soundon",
+    }
+    local hit = nil
+    for _, n in ipairs(names) do
+        if type(client[n]) == "function" then
+            pcall(client[n], on)
+            hit = n
+            break
+        end
     end
-    if type(client.setsoundon) == "function" then
-        pcall(client.setsoundon, on)
+    if not _sound_attempt_logged and console and console.log then
+        console.log("[RC] set_emu_sound resolved to: " .. (hit or "(none — no client.* sound API found)"))
+        _sound_attempt_logged = true
     end
 end
 
 -- ---------------------------------------------------------------------------
 -- Per-frame NES APU silence.
 --
--- client.SetSoundOn alone wasn't fully muting Mega Man 2's looping
--- music — the symptom is reproducible enough that we now belt-and-
--- suspender with a direct write to $4015 (APU status / channel-
--- enable register) every frame of the muted phases. Writing 0x00
--- silences all five channels (pulse 1/2, triangle, noise, DMC).
--- The game's music engine re-enables them on its next music-tick,
--- so we have to keep zeroing it every frame; the moment we stop
--- (countdown ends → play_attempt loop), the engine restores the
--- channels naturally and gameplay audio resumes.
+-- client.SetSoundOn alone wasn't muting MM2's looping music on the
+-- player's build — likely because the game's music engine re-writes
+-- the APU channel registers every audio frame, overpowering any
+-- single Lua mute. We now hammer the APU directly:
+--
+--   $4015 (channel status) = 0 → disables all five channels
+--   $4000 / $4004 / $400C   = 0x30 (constant-volume 0) → silences
+--     pulse 1 / pulse 2 / noise even if the channel re-enables
+--   $4011 (DMC direct load) = 0 → silences PCM sample playback
+--   $4008 (triangle linear) = 0x80 (halt linear) → silences triangle
+--
+-- Called both BEFORE frameadvance (so the game starts the frame in a
+-- silent state) AND immediately after for the countdown loop, which
+-- catches the case where the music engine writes notes mid-frame.
+-- When the loop exits, we stop writing — the game's audio engine
+-- resumes control and gameplay audio comes back naturally on the
+-- next music-tick.
+--
+-- All writes pcall'd so any unsupported address on an unusual core
+-- silently no-ops rather than killing the script.
 -- ---------------------------------------------------------------------------
-local NES_APU_STATUS = 0x4015
 local function silence_apu()
     if not memory.write_u8 then return end
-    pcall(memory.write_u8, NES_APU_STATUS, 0x00, "System Bus")
+    pcall(memory.write_u8, 0x4015, 0x00, "System Bus")  -- disable all channels
+    pcall(memory.write_u8, 0x4000, 0x30, "System Bus")  -- pulse 1: constant vol 0
+    pcall(memory.write_u8, 0x4004, 0x30, "System Bus")  -- pulse 2: constant vol 0
+    pcall(memory.write_u8, 0x400C, 0x30, "System Bus")  -- noise:   constant vol 0
+    pcall(memory.write_u8, 0x4008, 0x80, "System Bus")  -- triangle: halt linear ctr
+    pcall(memory.write_u8, 0x4011, 0x00, "System Bus")  -- DMC raw output 0
 end
 
 -- ---------------------------------------------------------------------------
@@ -275,6 +304,10 @@ local function play_countdown(spec)
             if asset_exists(step.name) then draw_asset(step.name) end
             if r_pressed() then return true end
             emu.frameadvance()
+            -- Second sweep after the game's per-frame audio writes
+            -- (music engine ticks during frameadvance) so we end the
+            -- frame silent regardless of what notes it wrote.
+            silence_apu()
         end
     end
     gui.clearGraphics()
@@ -342,6 +375,7 @@ local function show_complete_screen_forever(spec, payload, time_text)
         hud.drawKeyPrompt(10, 232, "R", "RETRY")
         if r_pressed() then return end
         emu.frameadvance()
+        silence_apu()
     end
 end
 
@@ -365,6 +399,7 @@ local function show_failure_screen_forever(spec, time_text)
         hud.drawKeyPrompt(10, 232, "R", "RETRY")
         if r_pressed() then return end
         emu.frameadvance()
+        silence_apu()
     end
 end
 
