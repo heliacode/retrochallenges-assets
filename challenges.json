@@ -315,6 +315,26 @@
           }
         },
         {
+          "name": "Wood Man Boss Fight",
+          "description": "Defeat Wood Man as fast as possible. Full HP, buster only — die once and the run is over.",
+          "lua": "nes\\megaman2\\boss-woodman\\boss-woodman.lua",
+          "difficulty": "Medium",
+          "category": "boss",
+          "estimatedTime": "1-3 minutes",
+          "minPlausibleFrames": 200,
+          "flagBelowFrames":    500,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":    600 },
+              { "grade": "SS",  "maxFrames":   1200 },
+              { "grade": "S",   "maxFrames":   2400 },
+              { "grade": "A",   "maxFrames":   3600 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
           "name": "Robot Wolf Destruction",
           "description": "Wood Man's stage opening — push three screens to the right through the Friender robot wolves. No loadout changes, savestate is what you get. Take the up-route shortcut and the run ends.",
           "lua": "nes\\megaman2\\robot-wolf-destruction\\robot-wolf-destruction.lua",
@@ -678,10 +698,10 @@
     }
   ],
   "metadata": {
-    "version": "1.32.0",
-    "lastUpdated": "2026-05-14T16:30:00Z",
+    "version": "1.33.0",
+    "lastUpdated": "2026-05-14T16:45:00Z",
     "totalGames": 7,
-    "totalChallenges": 31,
+    "totalChallenges": 32,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
