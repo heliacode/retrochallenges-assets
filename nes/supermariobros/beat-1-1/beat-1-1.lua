@@ -111,12 +111,6 @@ challenge.run{
 
     hud = function(state)
         hud.drawTime(10, 4, state.elapsed)
-        -- Debug: live readout of BizHawk's joypad.get(1). Each glyph
-        -- shows that NES button pressed, "-" means released. Order is
-        -- U D L R A B + - (Start / Select). Useful for the gamepad-
-        -- diagonal-drop investigation; remove this line once the
-        -- input issue is closed.
-        hud.drawInputDisplay(140, 4)
     end,
 
     result = function(state)
