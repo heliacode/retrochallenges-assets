@@ -313,6 +313,26 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "Robot Wolf Destruction",
+          "description": "Wood Man's stage opening — push three screens to the right through the Friender robot wolves. No loadout changes, savestate is what you get. Take the up-route shortcut and the run ends.",
+          "lua": "nes\\megaman2\\robot-wolf-destruction\\robot-wolf-destruction.lua",
+          "difficulty": "Medium",
+          "category": "speedrun",
+          "estimatedTime": "30 sec – 2 min",
+          "minPlausibleFrames": 600,
+          "flagBelowFrames":   1200,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1500 },
+              { "grade": "SS",  "maxFrames":   2400 },
+              { "grade": "S",   "maxFrames":   4500 },
+              { "grade": "A",   "maxFrames":   9000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
         }
       ]
     },
@@ -658,10 +678,10 @@
     }
   ],
   "metadata": {
-    "version": "1.31.0",
-    "lastUpdated": "2026-05-12T10:30:00Z",
+    "version": "1.32.0",
+    "lastUpdated": "2026-05-14T16:30:00Z",
     "totalGames": 7,
-    "totalChallenges": 30,
+    "totalChallenges": 31,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
