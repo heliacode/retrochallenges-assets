@@ -205,6 +205,25 @@ local function set_emu_sound(on)
 end
 
 -- ---------------------------------------------------------------------------
+-- Per-frame NES APU silence.
+--
+-- client.SetSoundOn alone wasn't fully muting Mega Man 2's looping
+-- music — the symptom is reproducible enough that we now belt-and-
+-- suspender with a direct write to $4015 (APU status / channel-
+-- enable register) every frame of the muted phases. Writing 0x00
+-- silences all five channels (pulse 1/2, triangle, noise, DMC).
+-- The game's music engine re-enables them on its next music-tick,
+-- so we have to keep zeroing it every frame; the moment we stop
+-- (countdown ends → play_attempt loop), the engine restores the
+-- channels naturally and gameplay audio resumes.
+-- ---------------------------------------------------------------------------
+local NES_APU_STATUS = 0x4015
+local function silence_apu()
+    if not memory.write_u8 then return end
+    pcall(memory.write_u8, NES_APU_STATUS, 0x00, "System Bus")
+end
+
+-- ---------------------------------------------------------------------------
 -- Internal: countdown
 -- ---------------------------------------------------------------------------
 local COUNTDOWN_STEPS = {
@@ -233,6 +252,7 @@ local function play_countdown(spec)
         for _ = 1, step.frames do
             if use_universal then freeze_restore() end
             spec.freeze_game()
+            silence_apu()
             -- Force every NES button to false ONLY for games that lack a
             -- per-game freeze byte (Dragon Warrior, Pac-Man, Mario Bros,
             -- Kung Fu). Those engines accept input even while we hold
@@ -307,6 +327,7 @@ local function show_complete_screen_forever(spec, payload, time_text)
         if use_universal then freeze_restore() end
         spec.freeze_game()
         neutralize_input()
+        silence_apu()
         hud.banner.win()
         if payload.completionTime then
             hud.drawText(10, 195, "FINAL TIME")
@@ -337,6 +358,7 @@ local function show_failure_screen_forever(spec, time_text)
         if use_universal then freeze_restore() end
         spec.freeze_game()
         neutralize_input()
+        silence_apu()
         hud.banner.fail()
         hud.drawText(10, 195, "FAILED AT")
         hud.drawText(10, 213, time_text)
