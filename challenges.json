@@ -628,7 +628,7 @@
         },
         {
           "name": "Beat 1-2 — Fastest Time",
-          "description": "Get out of World 1-2 alive — by the flagpole or via the warp zone, either counts. One life. Pits, enemies and the in-game timer all end the run.",
+          "description": "Escape World 1-2 alive through the warp zone — the leftmost pipe drops you in World 2, the others reach Worlds 3 and 4. Any pipe counts. One life: pits, enemies and the in-game timer all end the run.",
           "lua": "nes\\supermariobros\\beat-1-2\\beat-1-2.lua",
           "difficulty": "Easy",
           "category": "speedrun",
@@ -698,8 +698,8 @@
     }
   ],
   "metadata": {
-    "version": "1.33.0",
-    "lastUpdated": "2026-05-14T16:45:00Z",
+    "version": "1.33.1",
+    "lastUpdated": "2026-05-19T00:00:00Z",
     "totalGames": 7,
     "totalChallenges": 32,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],

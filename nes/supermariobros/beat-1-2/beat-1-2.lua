@@ -1,9 +1,9 @@
 -- Super Mario Bros. (World) — Beat 1-2
 --
--- Touch the World 1-2 flagpole as fast as you can. The 1-2 warp-zone
--- pipes don't count — the only valid finish is the flagpole at the
--- end of the regular path. Single life: pit / enemy / timer-zero
--- ends the run.
+-- Escape World 1-2 as fast as you can. 1-2 is underground and has no
+-- flagpole — its only exit is the warp zone, so dropping down any of
+-- the three warp pipes (World 2 / 3 / 4) finishes the run. Single
+-- life: pit / enemy / timer-zero ends it.
 
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
@@ -18,7 +18,6 @@ local GAME_MODE      = 0x0770  -- 0x02 = in-level gameplay
 local PLAYER_FLOAT   = 0x001D  -- 0x03 = sliding down flagpole
 local PAUSE_FLAG     = 0x0776  -- nonzero = paused
 local WORLD          = 0x075F  -- 0-indexed; 0 = World 1
-local LEVEL          = 0x0760  -- 0-indexed within world; 1 = X-2
 local LIVES          = 0x075A
 local TIMER_HI       = 0x07F8
 local TIMER_MID      = 0x07F9
@@ -44,36 +43,36 @@ local function timer_expired()
 end
 
 -- ---------------------------------------------------------------------------
--- Per-attempt state.
---
--- We capture the starting (world, level) bytes in setup rather than
--- hard-coding "(0, 1) == 1-2". An earlier version that assumed the
--- savestate would read WORLD=0 / LEVEL=1 on frame 0 fired the win
--- predicate instantly — either the prelevel splash leaves the bytes
--- uninitialised for a few frames, or my address labels for $075F /
--- $0760 are swapped vs. what this savestate actually holds. Either
--- way, "left the level you started in" is the unambiguous signal.
+-- Per-attempt state. setup() runs one emu.frameadvance() before reading
+-- so the savestate's RAM is settled.
 -- ---------------------------------------------------------------------------
 local start_world = 0
-local start_level = 0
 local prev_lives  = 0
 
--- Win = Mario is sliding down the 1-2 flagpole. $001D == 0x03 latches
--- the instant the flagpole is touched (well before the level transition
--- swaps world/level bytes), so the timer locks at the moment of contact
--- rather than waiting for the post-flagpole walk + castle animation to
--- finish. Warp-zone completion is intentionally NOT a win for this
--- challenge — the rule is "hit the flagpole".
+-- Win = Mario has left World 1-2.
 --
--- The GAME_MODE gate (must be 0x02 = in-level gameplay) keeps the
--- predicate from false-firing on uninitialised RAM at savestate load,
--- and the (world, level) gate keeps it from latching on any later
--- level's flagpole if the run ever extends past the starting one.
-local function flagpole_touched_in_starting_level()
-    return read_u8(GAME_MODE)    == 0x02
-       and read_u8(PLAYER_FLOAT) == 0x03
-       and read_u8(WORLD)        == start_world
-       and read_u8(LEVEL)        == start_level
+-- IMPORTANT: World 1-2 has NO flagpole. It is an underground level
+-- whose only exit is the warp zone — three pipes, leftmost to World 2,
+-- the others to Worlds 3 and 4. You cannot "hit a flagpole" here; the
+-- previous predicate watched $001D == 0x03 (flagpole slide) and so
+-- could never be satisfied, which made this challenge impossible to
+-- finish by any route.
+--
+-- The reliable "left 1-2" signal is the World byte changing from the
+-- value captured at setup: each of the three warp pipes lands you in a
+-- different world (2 / 3 / 4 -> byte 1 / 2 / 3), all != the starting 0.
+-- Moving between 1-2's internal areas (underground -> warp-zone
+-- surface) does NOT change $075F, so this can't false-fire before the
+-- player actually warps out. The GAME_MODE == 0x02 gate means we only
+-- latch once the destination world is being played, not mid-transition.
+--
+-- A flagpole branch ($001D == 0x03) is kept as defensive cover so the
+-- script still works if a savestate is ever re-recorded in a level
+-- that does end at a flagpole — it simply never triggers in 1-2.
+local function left_world_1_2()
+    if read_u8(GAME_MODE) ~= 0x02 then return false end
+    if read_u8(PLAYER_FLOAT) == 0x03 then return true end
+    return read_u8(WORLD) ~= start_world
 end
 
 challenge.run{
@@ -86,11 +85,10 @@ challenge.run{
     setup = function(state)
         emu.frameadvance()
         start_world = read_u8(WORLD)
-        start_level = read_u8(LEVEL)
         prev_lives  = read_u8(LIVES)
     end,
 
-    win = flagpole_touched_in_starting_level,
+    win = left_world_1_2,
 
     fail = function()
         local now = read_u8(LIVES)
