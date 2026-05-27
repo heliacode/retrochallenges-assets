@@ -1,13 +1,10 @@
--- Super Mario Bros. (World) — Beat 1-2
+-- Super Mario Bros. (World) — Beat 1-4 (Bowser castle)
 --
--- Reach the World 1-2 flagpole as fast as possible. 1-2 starts
--- underground and ends at the warp-zone surface section; if you run
--- past the warp pipes without going up, there's a flagpole at the
--- right edge of that section. That's the win signal.
---
--- Single life: pit / enemy / timer-zero ends the run. Taking a warp
--- pipe does NOT win — those send you to W2/W3/W4 and the flagpole
--- gate is what counts.
+-- Cross Bowser's castle and touch the axe at the end of the bridge.
+-- 1-4 is a castle level, so there is no flagpole — the win signal is
+-- the end-of-level animation kicking in, which the engine triggers
+-- the moment Mario touches the axe. Single life: fire / Podoboo /
+-- enemy / pit / timer-zero ends the run.
 
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
@@ -20,10 +17,10 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- https://datacrystal.tcrf.net/wiki/Super_Mario_Bros./RAM_map
 -- ---------------------------------------------------------------------------
 local GAME_MODE    = 0x0770  -- 0x02 = in-level gameplay
+local OP_MODE      = 0x0772  -- 0x04 = end-of-level animation (flagpole OR axe)
 local PAUSE_FLAG   = 0x0776  -- nonzero = paused (freeze hook)
 local WORLD        = 0x075F  -- 0-indexed: 0 = World 1
-local LEVEL        = 0x0760  -- 0-indexed within world: 1 = X-2
-local PLAYER_FLOAT = 0x001D  -- 0x03 = sliding down flagpole
+local LEVEL        = 0x0760  -- 0-indexed within world: 3 = X-4 (castle)
 local LIVES        = 0x075A
 local TIMER_HI     = 0x07F8
 local TIMER_MID    = 0x07F9
@@ -45,27 +42,25 @@ local function timer_expired()
        and read_u8(GAME_MODE) == 0x02
 end
 
--- Per-attempt baselines. Captured in setup() after one frame so the
--- savestate's RAM is settled before reads.
+-- Per-attempt baselines.
 local start_world = 0
 local start_level = 0
 local prev_lives  = 0
 
--- Win = flagpole-slide latched while still in the starting (world, level).
--- $001D == 0x03 fires the instant Mario touches the pole — well before
--- the level transition rolls the world/level bytes — so this captures the
--- finish exactly when the flagpole is tagged. The (world, level) gate
--- prevents a later level's flagpole from firing if the run somehow
--- extends past 1-2.
-local function flagpole_touched_in_starting_level()
-    return read_u8(GAME_MODE)    == 0x02
-       and read_u8(PLAYER_FLOAT) == 0x03
-       and read_u8(WORLD)        == start_world
-       and read_u8(LEVEL)        == start_level
+-- Win = the end-of-level animation flag latches on the castle level
+-- we started in. In a castle that flag is set the instant Mario walks
+-- into the axe (kicks off the bridge-collapse / Bowser-fall outro), so
+-- it captures the finish at the exact moment of contact — well before
+-- the world/level bytes roll forward to 2-1. The (world, level) gate
+-- means a later castle never false-fires this predicate.
+local function axe_touched_in_starting_castle()
+    return read_u8(OP_MODE) == 0x04
+       and read_u8(WORLD)   == start_world
+       and read_u8(LEVEL)   == start_level
 end
 
 challenge.run{
-    savestate           = "savestates/beat-1-2.state",
+    savestate           = "savestates/beat-1-4.State",
     expected_rom_hashes = { "EA343F4E445A9050D4B4FBAC2C77D0693B1D0922" },
 
     freeze_game  = freeze_game,
@@ -78,7 +73,7 @@ challenge.run{
         prev_lives  = read_u8(LIVES)
     end,
 
-    win = flagpole_touched_in_starting_level,
+    win = axe_touched_in_starting_castle,
 
     fail = function()
         local now = read_u8(LIVES)

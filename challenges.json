@@ -628,7 +628,7 @@
         },
         {
           "name": "Beat 1-2 — Fastest Time",
-          "description": "Escape World 1-2 alive through the warp zone — the leftmost pipe drops you in World 2, the others reach Worlds 3 and 4. Any pipe counts. One life: pits, enemies and the in-game timer all end the run.",
+          "description": "Reach the flagpole at the end of World 1-2 as fast as you can. Warp pipes don't count. One life: pits, enemies and the in-game timer all end the run.",
           "lua": "nes\\supermariobros\\beat-1-2\\beat-1-2.lua",
           "difficulty": "Easy",
           "category": "speedrun",
@@ -642,6 +642,46 @@
               { "grade": "SS",  "maxFrames":   3000 },
               { "grade": "S",   "maxFrames":   6000 },
               { "grade": "A",   "maxFrames":  12000 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
+          "name": "Beat 1-3 — Fastest Time",
+          "description": "Tag the World 1-3 flagpole as fast as you can. The bouncy-platform / Cheep-Cheep level — one mistimed jump and you're in the pit. Single life.",
+          "lua": "nes\\supermariobros\\beat-1-3\\beat-1-3.lua",
+          "difficulty": "Medium",
+          "category": "speedrun",
+          "estimatedTime": "40 sec – 3 min",
+          "minPlausibleFrames": 800,
+          "flagBelowFrames":   1920,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   2400 },
+              { "grade": "SS",  "maxFrames":   3840 },
+              { "grade": "S",   "maxFrames":   6000 },
+              { "grade": "A",   "maxFrames":   9600 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
+          "name": "Beat 1-4 — Bowser's Castle",
+          "description": "Cross the castle and touch the axe at the end of the bridge as fast as you can. Fire bars, Podoboos and Bowser himself want you dead. Single life.",
+          "lua": "nes\\supermariobros\\beat-1-4\\beat-1-4.lua",
+          "difficulty": "Medium",
+          "category": "speedrun",
+          "estimatedTime": "25 sec – 2 min",
+          "minPlausibleFrames": 500,
+          "flagBelowFrames":   1200,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1500 },
+              { "grade": "SS",  "maxFrames":   2400 },
+              { "grade": "S",   "maxFrames":   3750 },
+              { "grade": "A",   "maxFrames":   6000 },
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
@@ -698,10 +738,10 @@
     }
   ],
   "metadata": {
-    "version": "1.33.1",
-    "lastUpdated": "2026-05-19T00:00:00Z",
+    "version": "1.34.0",
+    "lastUpdated": "2026-05-27T00:00:00Z",
     "totalGames": 7,
-    "totalChallenges": 32,
+    "totalChallenges": 34,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }

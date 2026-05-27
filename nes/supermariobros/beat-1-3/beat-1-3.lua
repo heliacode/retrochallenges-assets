@@ -1,13 +1,9 @@
--- Super Mario Bros. (World) — Beat 1-2
+-- Super Mario Bros. (World) — Beat 1-3
 --
--- Reach the World 1-2 flagpole as fast as possible. 1-2 starts
--- underground and ends at the warp-zone surface section; if you run
--- past the warp pipes without going up, there's a flagpole at the
--- right edge of that section. That's the win signal.
---
--- Single life: pit / enemy / timer-zero ends the run. Taking a warp
--- pipe does NOT win — those send you to W2/W3/W4 and the flagpole
--- gate is what counts.
+-- Reach the World 1-3 flagpole as fast as possible. 1-3 is the
+-- bouncing-platforms-over-pits level — pits and Cheep-Cheeps will
+-- end the run if you mistime a jump. Single life: pit / enemy /
+-- timer-zero ends it.
 
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
@@ -22,7 +18,7 @@ local write_u8 = memory.write_u8 or memory.writebyte
 local GAME_MODE    = 0x0770  -- 0x02 = in-level gameplay
 local PAUSE_FLAG   = 0x0776  -- nonzero = paused (freeze hook)
 local WORLD        = 0x075F  -- 0-indexed: 0 = World 1
-local LEVEL        = 0x0760  -- 0-indexed within world: 1 = X-2
+local LEVEL        = 0x0760  -- 0-indexed within world: 2 = X-3
 local PLAYER_FLOAT = 0x001D  -- 0x03 = sliding down flagpole
 local LIVES        = 0x075A
 local TIMER_HI     = 0x07F8
@@ -45,18 +41,12 @@ local function timer_expired()
        and read_u8(GAME_MODE) == 0x02
 end
 
--- Per-attempt baselines. Captured in setup() after one frame so the
--- savestate's RAM is settled before reads.
+-- Per-attempt baselines.
 local start_world = 0
 local start_level = 0
 local prev_lives  = 0
 
 -- Win = flagpole-slide latched while still in the starting (world, level).
--- $001D == 0x03 fires the instant Mario touches the pole — well before
--- the level transition rolls the world/level bytes — so this captures the
--- finish exactly when the flagpole is tagged. The (world, level) gate
--- prevents a later level's flagpole from firing if the run somehow
--- extends past 1-2.
 local function flagpole_touched_in_starting_level()
     return read_u8(GAME_MODE)    == 0x02
        and read_u8(PLAYER_FLOAT) == 0x03
@@ -65,7 +55,7 @@ local function flagpole_touched_in_starting_level()
 end
 
 challenge.run{
-    savestate           = "savestates/beat-1-2.state",
+    savestate           = "savestates/beat-1-3.State",
     expected_rom_hashes = { "EA343F4E445A9050D4B4FBAC2C77D0693B1D0922" },
 
     freeze_game  = freeze_game,
