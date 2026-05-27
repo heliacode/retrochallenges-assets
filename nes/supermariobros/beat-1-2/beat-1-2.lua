@@ -46,22 +46,31 @@ local function timer_expired()
 end
 
 -- Per-attempt baselines. Captured in setup() after one frame so the
--- savestate's RAM is settled before reads.
+-- savestate's RAM is settled before reads. start_world / start_level
+-- are kept around for the diagnostic HUD line but no longer gate the
+-- win predicate — see comment on flagpole_touched below.
 local start_world = 0
 local start_level = 0
 local prev_lives  = 0
 
--- Win = flagpole-slide latched while still in the starting (world, level).
--- $001D == 0x03 fires the instant Mario touches the pole — well before
--- the level transition rolls the world/level bytes — so this captures the
--- finish exactly when the flagpole is tagged. The (world, level) gate
--- prevents a later level's flagpole from firing if the run somehow
--- extends past 1-2.
-local function flagpole_touched_in_starting_level()
+-- Win = flagpole-slide while in active gameplay. No world/level gate.
+--
+-- Earlier we gated on (world, level) == start, but 1-2 trips that:
+-- the underground -> warp-zone-surface pipe changes the area-level
+-- byte ($0760), so the flagpole on the surface section reads a
+-- different LEVEL value than the underground starting state. The
+-- gate then blocked the win even when Mario was clearly tagging
+-- the pole.
+--
+-- Dropping the gate is safe because $001D == 0x03 is unique to the
+-- flagpole slide (Data Crystal: 0x00 stand / 0x01 jump airborne /
+-- 0x02 walk-off airborne / 0x03 flagpole), and the run ends on the
+-- first flagpole touch — the next level's flagpole never gets a
+-- chance to false-fire. GAME_MODE == 0x02 guards against any 0x03
+-- transient during savestate load.
+local function flagpole_touched()
     return read_u8(GAME_MODE)    == 0x02
        and read_u8(PLAYER_FLOAT) == 0x03
-       and read_u8(WORLD)        == start_world
-       and read_u8(LEVEL)        == start_level
 end
 
 challenge.run{
@@ -90,6 +99,13 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
+        -- Diagnostic — bottom of screen. If win still misses, read off
+        -- F (PLAYER_FLOAT) at the flagpole and G (GAME_MODE). Remove
+        -- once 1-2 is confirmed firing.
+        gui.text(8, 224, string.format(
+            "W:%d L:%d F:%02X G:%02X",
+            read_u8(WORLD), read_u8(LEVEL),
+            read_u8(PLAYER_FLOAT), read_u8(GAME_MODE)))
     end,
 
     result = function(state)

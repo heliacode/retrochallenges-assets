@@ -363,15 +363,17 @@ local function show_complete_screen_forever(spec, payload)
         silence_apu()
         hud.banner.win()
         if payload.completionTime then
-            hud.drawText(10, 195, "FINAL TIME")
+            hud.drawText(10, 185, "FINAL TIME")
             -- Match the in-run timer's bigger sSmall digit set instead
             -- of the smaller text-font glyphs — keeps the banner from
             -- visually shrinking the time after a finished challenge.
-            hud.drawTime(10, 211, payload.completionTime)
+            -- y bumped up 10px from 211 so the digit baseline doesn't
+            -- get clipped at the bottom of the 240px screen.
+            hud.drawTime(10, 201, payload.completionTime)
         end
         if payload.score then
-            hud.drawText(160, 195, "SCORE")
-            hud.drawDigits(160, 211, tostring(payload.score))
+            hud.drawText(160, 185, "SCORE")
+            hud.drawDigits(160, 201, tostring(payload.score))
         end
         -- Pixel-art [R] glyph + image-font label, falls back to text if
         -- either asset is missing.
@@ -397,8 +399,8 @@ local function show_failure_screen_forever(spec, fail_frames)
         neutralize_input()
         silence_apu()
         hud.banner.fail()
-        hud.drawText(10, 195, "FAILED AT")
-        hud.drawTime(10, 211, fail_frames)
+        hud.drawText(10, 185, "FAILED AT")
+        hud.drawTime(10, 201, fail_frames)
         hud.drawKeyPrompt(10, 232, "R", "RETRY")
         if r_pressed() then return end
         emu.frameadvance()

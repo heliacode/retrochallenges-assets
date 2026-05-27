@@ -17,8 +17,8 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- ---------------------------------------------------------------------------
 local GAME_MODE    = 0x0770  -- 0x02 = in-level gameplay
 local PAUSE_FLAG   = 0x0776  -- nonzero = paused (freeze hook)
-local WORLD        = 0x075F  -- 0-indexed: 0 = World 1
-local LEVEL        = 0x0760  -- 0-indexed within world: 2 = X-3
+local WORLD        = 0x075F  -- diagnostic only
+local LEVEL        = 0x0760  -- diagnostic only
 local PLAYER_FLOAT = 0x001D  -- 0x03 = sliding down flagpole
 local LIVES        = 0x075A
 local TIMER_HI     = 0x07F8
@@ -41,17 +41,15 @@ local function timer_expired()
        and read_u8(GAME_MODE) == 0x02
 end
 
--- Per-attempt baselines.
-local start_world = 0
-local start_level = 0
-local prev_lives  = 0
+local prev_lives = 0
 
--- Win = flagpole-slide latched while still in the starting (world, level).
-local function flagpole_touched_in_starting_level()
+-- Win = flagpole-slide while in active gameplay. No world/level gate.
+-- See beat-1-2.lua for the long-form why; short version: $001D == 0x03
+-- is unique to the flagpole slide, the run ends on first contact, so
+-- no later level's flagpole can false-fire.
+local function flagpole_touched()
     return read_u8(GAME_MODE)    == 0x02
        and read_u8(PLAYER_FLOAT) == 0x03
-       and read_u8(WORLD)        == start_world
-       and read_u8(LEVEL)        == start_level
 end
 
 challenge.run{
@@ -63,12 +61,10 @@ challenge.run{
 
     setup = function(state)
         emu.frameadvance()
-        start_world = read_u8(WORLD)
-        start_level = read_u8(LEVEL)
-        prev_lives  = read_u8(LIVES)
+        prev_lives = read_u8(LIVES)
     end,
 
-    win = flagpole_touched_in_starting_level,
+    win = flagpole_touched,
 
     fail = function()
         local now = read_u8(LIVES)
@@ -80,6 +76,11 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
+        -- Diagnostic. Remove once 1-3 is confirmed firing.
+        gui.text(8, 224, string.format(
+            "W:%d L:%d F:%02X G:%02X",
+            read_u8(WORLD), read_u8(LEVEL),
+            read_u8(PLAYER_FLOAT), read_u8(GAME_MODE)))
     end,
 
     result = function(state)
