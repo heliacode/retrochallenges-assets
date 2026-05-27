@@ -99,7 +99,7 @@ challenge.run{
     end,
 
     hud = function(state)
-        hud.drawTime(10, 4, state.elapsed)
+        hud.drawTimeBg(10, 4, state.elapsed)
     end,
 
     result = function(state)

@@ -115,6 +115,19 @@ function M.drawTime(x, y, frames)
     M.drawDigits(x, y, M.formatTime(frames))
 end
 
+-- Same as drawTime but draws an opaque black backdrop behind the
+-- digits first, so the timer stays readable on games whose HUD or
+-- background art sits where ours lands (SMB's top-row world/coin
+-- counters being the obvious example). Sized to the actual digit
+-- string so it tracks the M:SS.mmm format width.
+function M.drawTimeBg(x, y, frames)
+    local str = M.formatTime(frames)
+    local w = (#str - 1) * DIGIT_ADVANCE + DIGIT_DRAW_W + 4
+    local h = DIGIT_DRAW_H + 4
+    gui.drawRectangle(x - 2, y - 2, w, h, 0xff000000, 0xff000000)
+    M.drawDigits(x, y, str)
+end
+
 function M.drawScore(x, y, current, target)
     local s = tostring(current or 0)
     if target then s = s .. " / " .. tostring(target) end
