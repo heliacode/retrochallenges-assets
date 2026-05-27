@@ -49,7 +49,7 @@ local prev_lives = 0
 -- Run the challenge
 -- ---------------------------------------------------------------------------
 challenge.run{
-    savestate           = "savestates/metalman-boss.state",
+    savestate           = "savestates/boss-metalman.state",
     expected_rom_hashes = { "2290D8D839A303219E9327EA1451C5EEA430F53D" },  -- Mega Man 2 (USA, iNES file SHA1)
 
     freeze_game  = freeze_game,

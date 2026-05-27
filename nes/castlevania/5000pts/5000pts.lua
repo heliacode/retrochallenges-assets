@@ -33,6 +33,11 @@ local TARGET_SCORE = 5000
 -- gui.draw* keeps rendering during countdown / completion overlays.
 local USER_PAUSED = 0x0022
 
+-- Lives counter — used by the fail predicate to end the run on death,
+-- matching every other CV challenge in this repo.
+local LIVES = 0x002A
+local prev_lives = 0
+
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
@@ -64,7 +69,22 @@ challenge.run{
     freeze_game  = freeze_game,
     release_game = release_game,
 
+    setup = function(state)
+        emu.frameadvance()
+        prev_lives = read_u8(LIVES)
+    end,
+
     win = function() return read_score() >= TARGET_SCORE end,
+
+    -- Death ends the run. Watching the lives counter catches every
+    -- cause (pit, enemy contact, timer-zero) uniformly. Edge-trigger
+    -- on decrement so a between-frame 1-Up can't mask a later death.
+    fail = function()
+        local now_lives = read_u8(LIVES)
+        if now_lives < prev_lives then return true end
+        prev_lives = now_lives
+        return false
+    end,
 
     hud = function(state)
         gui.text(10,  6, "SCORE")

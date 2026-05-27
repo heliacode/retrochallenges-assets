@@ -49,7 +49,7 @@ local prev_lives = 0
 -- Run the challenge
 -- ---------------------------------------------------------------------------
 challenge.run{
-    savestate    = "savestates/batboss_no_subweapon.state",
+    savestate    = "savestates/bat-boss-no-sub.state",
     expected_rom_hashes = { "7A20C44F302FB2F1B7ADFFA6B619E3E1CAE7B546" },  -- Castlevania (USA, iNES file SHA1)
     countdown    = true,
     freeze_game  = freeze_game,
