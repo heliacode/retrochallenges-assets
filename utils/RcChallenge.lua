@@ -346,7 +346,7 @@ local function draw_play_on_frames(spec, frames)
     return false
 end
 
-local function show_complete_screen_forever(spec, payload, time_text)
+local function show_complete_screen_forever(spec, payload)
     -- Silence the NES core for the celebration screen so the looping
     -- level music doesn't fight the win jingle.
     set_emu_sound(false)
@@ -364,11 +364,14 @@ local function show_complete_screen_forever(spec, payload, time_text)
         hud.banner.win()
         if payload.completionTime then
             hud.drawText(10, 195, "FINAL TIME")
-            hud.drawText(10, 213, time_text)
+            -- Match the in-run timer's bigger sSmall digit set instead
+            -- of the smaller text-font glyphs — keeps the banner from
+            -- visually shrinking the time after a finished challenge.
+            hud.drawTime(10, 211, payload.completionTime)
         end
         if payload.score then
-            hud.drawText(140, 195, "SCORE")
-            hud.drawText(140, 213, tostring(payload.score))
+            hud.drawText(160, 195, "SCORE")
+            hud.drawDigits(160, 211, tostring(payload.score))
         end
         -- Pixel-art [R] glyph + image-font label, falls back to text if
         -- either asset is missing.
@@ -379,7 +382,7 @@ local function show_complete_screen_forever(spec, payload, time_text)
     end
 end
 
-local function show_failure_screen_forever(spec, time_text)
+local function show_failure_screen_forever(spec, fail_frames)
     -- Silence the NES core for the failure screen too — the looping
     -- level music after a death is a long-standing audio complaint.
     set_emu_sound(false)
@@ -395,7 +398,7 @@ local function show_failure_screen_forever(spec, time_text)
         silence_apu()
         hud.banner.fail()
         hud.drawText(10, 195, "FAILED AT")
-        hud.drawText(10, 213, time_text)
+        hud.drawTime(10, 211, fail_frames)
         hud.drawKeyPrompt(10, 232, "R", "RETRY")
         if r_pressed() then return end
         emu.frameadvance()
@@ -541,10 +544,9 @@ function M.run(spec_in)
         if outcome == "retry" then
             -- fall through to the next iteration -> reload + restart
         elseif outcome == "fail" then
-            local time_text = hud.formatTime(state.elapsed)
             local cancelled = draw_play_on_frames(spec, spec.play_on_frames)
             if not cancelled then
-                show_failure_screen_forever(spec, time_text)
+                show_failure_screen_forever(spec, state.elapsed)
             end
             -- Either play-on or failure-screen returned because R was
             -- pressed; either way we restart.
@@ -578,10 +580,9 @@ function M.run(spec_in)
             safe_play_sound("challengecompleted.wav")
             if RC.report_completion then RC.report_completion(payload) end
 
-            local time_text = hud.formatTime(payload.completionTime)
             local cancelled = draw_play_on_frames(spec, spec.play_on_frames)
             if not cancelled then
-                show_complete_screen_forever(spec, payload, time_text)
+                show_complete_screen_forever(spec, payload)
             end
         end
 
