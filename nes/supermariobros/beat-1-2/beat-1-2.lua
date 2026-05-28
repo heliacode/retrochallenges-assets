@@ -54,8 +54,9 @@ local start_level = 0
 local prev_lives  = 0
 
 -- Diagnostic state (persists across frames). Reset in setup().
-local peak_float = 0
-local win_ever   = false
+local peak_float    = 0
+local world_changed = false
+local level_changed = false
 
 -- Win = flagpole-slide while in active gameplay. No world/level gate.
 --
@@ -72,9 +73,13 @@ local win_ever   = false
 -- first flagpole touch — the next level's flagpole never gets a
 -- chance to false-fire. GAME_MODE == 0x02 guards against any 0x03
 -- transient during savestate load.
-local function flagpole_touched()
-    return read_u8(GAME_MODE)    == 0x02
-       and read_u8(PLAYER_FLOAT) == 0x03
+-- Provisional union: flagpole-slide OR the World byte advancing past
+-- the start (warp pipe). Whichever way 1-2 actually ends, this should
+-- catch it; the diagnostic readout tells us which signal fired.
+local function level_left()
+    if read_u8(GAME_MODE) ~= 0x02 then return false end
+    if read_u8(PLAYER_FLOAT) == 0x03 then return true end
+    return read_u8(WORLD) ~= start_world
 end
 
 challenge.run{
@@ -89,11 +94,12 @@ challenge.run{
         start_world = read_u8(WORLD)
         start_level = read_u8(LEVEL)
         prev_lives  = read_u8(LIVES)
-        peak_float  = 0
-        win_ever    = false
+        peak_float    = 0
+        world_changed = false
+        level_changed = false
     end,
 
-    win = flagpole_touched,
+    win = level_left,
 
     fail = function()
         local now = read_u8(LIVES)
@@ -108,12 +114,15 @@ challenge.run{
         -- Diagnostic — plain concatenation, no string.format. Remove
         -- once 1-2 is confirmed firing.
         local f = read_u8(PLAYER_FLOAT)
-        local g = read_u8(GAME_MODE)
+        local w = read_u8(WORLD)
+        local l = read_u8(LEVEL)
         if f > peak_float then peak_float = f end
-        if f == 0x03 and g == 0x02 then win_ever = true end
-        gui.text(8, 200, "FLOAT now=" .. f .. " peak=" .. peak_float)
-        gui.text(8, 214, "MODE=" .. g)
-        gui.text(8, 228, "WIN HIT: " .. tostring(win_ever))
+        if w ~= start_world then world_changed = true end
+        if l ~= start_level then level_changed = true end
+        gui.text(8, 188, "FLOAT peak=" .. peak_float .. " now=" .. f)
+        gui.text(8, 202, "W now=" .. w .. " start=" .. start_world .. " chg=" .. tostring(world_changed))
+        gui.text(8, 216, "L now=" .. l .. " start=" .. start_level .. " chg=" .. tostring(level_changed))
+        gui.text(8, 230, "MODE=" .. read_u8(GAME_MODE))
     end,
 
     result = function(state)

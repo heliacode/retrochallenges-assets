@@ -1,8 +1,7 @@
 -- Super Mario Bros. (World) — Beat 1-3
 --
 -- Reach the World 1-3 flagpole as fast as possible. 1-3 is the
--- bouncing-platforms-over-pits level — pits and Cheep-Cheeps will
--- end the run if you mistime a jump. Single life: pit / enemy /
+-- bouncing-platforms-over-pits level. Single life: pit / enemy /
 -- timer-zero ends it.
 
 local hud       = require("RcHud")
@@ -17,9 +16,9 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- ---------------------------------------------------------------------------
 local GAME_MODE    = 0x0770  -- 0x02 = in-level gameplay
 local PAUSE_FLAG   = 0x0776  -- nonzero = paused (freeze hook)
-local WORLD        = 0x075F  -- diagnostic only
-local LEVEL        = 0x0760  -- diagnostic only
-local PLAYER_FLOAT = 0x001D  -- 0x03 = sliding down flagpole
+local WORLD        = 0x075F  -- 0-indexed world
+local LEVEL        = 0x0760  -- 0-indexed level within world
+local PLAYER_FLOAT = 0x001D  -- 0x03 = sliding down flagpole (per RAM.md)
 local LIVES        = 0x075A
 local TIMER_HI     = 0x07F8
 local TIMER_MID    = 0x07F9
@@ -41,20 +40,24 @@ local function timer_expired()
        and read_u8(GAME_MODE) == 0x02
 end
 
-local prev_lives = 0
+local start_world = 0
+local start_level = 0
+local prev_lives  = 0
 
--- Diagnostic state (persists across frames so a brief flagpole moment
--- is still visible after the fact). Reset in setup().
-local peak_float = 0
-local win_ever   = false
+-- Diagnostic state (persists across frames). Reset in setup().
+local peak_float    = 0
+local world_changed = false
+local level_changed = false
 
--- Win = flagpole-slide while in active gameplay. No world/level gate.
--- See beat-1-2.lua for the long-form why; short version: $001D == 0x03
--- is unique to the flagpole slide, the run ends on first contact, so
--- no later level's flagpole can false-fire.
-local function flagpole_touched()
-    return read_u8(GAME_MODE)    == 0x02
-       and read_u8(PLAYER_FLOAT) == 0x03
+-- Provisional union: flagpole-slide OR world/level advancing past the
+-- start. 1-3 has no internal sub-areas, so a world/level change can
+-- only mean the level was completed (-> 1-4). The diagnostic readout
+-- tells us whether the flagpole signal ($001D == 0x03) ever fired or
+-- whether it was the level-change that carried the win.
+local function level_left()
+    if read_u8(GAME_MODE) ~= 0x02 then return false end
+    if read_u8(PLAYER_FLOAT) == 0x03 then return true end
+    return read_u8(WORLD) ~= start_world or read_u8(LEVEL) ~= start_level
 end
 
 challenge.run{
@@ -66,12 +69,15 @@ challenge.run{
 
     setup = function(state)
         emu.frameadvance()
-        prev_lives = read_u8(LIVES)
-        peak_float = 0
-        win_ever   = false
+        start_world   = read_u8(WORLD)
+        start_level   = read_u8(LEVEL)
+        prev_lives    = read_u8(LIVES)
+        peak_float    = 0
+        world_changed = false
+        level_changed = false
     end,
 
-    win = flagpole_touched,
+    win = level_left,
 
     fail = function()
         local now = read_u8(LIVES)
@@ -83,17 +89,16 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        -- Diagnostic — plain concatenation, no string.format (ruling
-        -- that out as a crash source). peak/win_ever persist so the
-        -- flagpole moment is readable after the fact. Remove once 1-3
-        -- is confirmed firing.
         local f = read_u8(PLAYER_FLOAT)
-        local g = read_u8(GAME_MODE)
+        local w = read_u8(WORLD)
+        local l = read_u8(LEVEL)
         if f > peak_float then peak_float = f end
-        if f == 0x03 and g == 0x02 then win_ever = true end
-        gui.text(8, 200, "FLOAT now=" .. f .. " peak=" .. peak_float)
-        gui.text(8, 214, "MODE=" .. g)
-        gui.text(8, 228, "WIN HIT: " .. tostring(win_ever))
+        if w ~= start_world then world_changed = true end
+        if l ~= start_level then level_changed = true end
+        gui.text(8, 188, "FLOAT peak=" .. peak_float .. " now=" .. f)
+        gui.text(8, 202, "W now=" .. w .. " start=" .. start_world .. " chg=" .. tostring(world_changed))
+        gui.text(8, 216, "L now=" .. l .. " start=" .. start_level .. " chg=" .. tostring(level_changed))
+        gui.text(8, 230, "MODE=" .. read_u8(GAME_MODE))
     end,
 
     result = function(state)
