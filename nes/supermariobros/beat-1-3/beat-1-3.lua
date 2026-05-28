@@ -43,6 +43,11 @@ end
 
 local prev_lives = 0
 
+-- Diagnostic state (persists across frames so a brief flagpole moment
+-- is still visible after the fact). Reset in setup().
+local peak_float = 0
+local win_ever   = false
+
 -- Win = flagpole-slide while in active gameplay. No world/level gate.
 -- See beat-1-2.lua for the long-form why; short version: $001D == 0x03
 -- is unique to the flagpole slide, the run ends on first contact, so
@@ -62,6 +67,8 @@ challenge.run{
     setup = function(state)
         emu.frameadvance()
         prev_lives = read_u8(LIVES)
+        peak_float = 0
+        win_ever   = false
     end,
 
     win = flagpole_touched,
@@ -76,11 +83,17 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        -- Diagnostic. Remove once 1-3 is confirmed firing.
-        gui.text(8, 224, string.format(
-            "W:%d L:%d F:%02X G:%02X",
-            read_u8(WORLD), read_u8(LEVEL),
-            read_u8(PLAYER_FLOAT), read_u8(GAME_MODE)))
+        -- Diagnostic — plain concatenation, no string.format (ruling
+        -- that out as a crash source). peak/win_ever persist so the
+        -- flagpole moment is readable after the fact. Remove once 1-3
+        -- is confirmed firing.
+        local f = read_u8(PLAYER_FLOAT)
+        local g = read_u8(GAME_MODE)
+        if f > peak_float then peak_float = f end
+        if f == 0x03 and g == 0x02 then win_ever = true end
+        gui.text(8, 200, "FLOAT now=" .. f .. " peak=" .. peak_float)
+        gui.text(8, 214, "MODE=" .. g)
+        gui.text(8, 228, "WIN HIT: " .. tostring(win_ever))
     end,
 
     result = function(state)

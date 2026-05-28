@@ -53,6 +53,10 @@ local start_world = 0
 local start_level = 0
 local prev_lives  = 0
 
+-- Diagnostic state (persists across frames). Reset in setup().
+local peak_float = 0
+local win_ever   = false
+
 -- Win = flagpole-slide while in active gameplay. No world/level gate.
 --
 -- Earlier we gated on (world, level) == start, but 1-2 trips that:
@@ -85,6 +89,8 @@ challenge.run{
         start_world = read_u8(WORLD)
         start_level = read_u8(LEVEL)
         prev_lives  = read_u8(LIVES)
+        peak_float  = 0
+        win_ever    = false
     end,
 
     win = flagpole_touched,
@@ -99,13 +105,15 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        -- Diagnostic — bottom of screen. If win still misses, read off
-        -- F (PLAYER_FLOAT) at the flagpole and G (GAME_MODE). Remove
+        -- Diagnostic — plain concatenation, no string.format. Remove
         -- once 1-2 is confirmed firing.
-        gui.text(8, 224, string.format(
-            "W:%d L:%d F:%02X G:%02X",
-            read_u8(WORLD), read_u8(LEVEL),
-            read_u8(PLAYER_FLOAT), read_u8(GAME_MODE)))
+        local f = read_u8(PLAYER_FLOAT)
+        local g = read_u8(GAME_MODE)
+        if f > peak_float then peak_float = f end
+        if f == 0x03 and g == 0x02 then win_ever = true end
+        gui.text(8, 200, "FLOAT now=" .. f .. " peak=" .. peak_float)
+        gui.text(8, 214, "MODE=" .. g)
+        gui.text(8, 228, "WIN HIT: " .. tostring(win_ever))
     end,
 
     result = function(state)

@@ -52,6 +52,10 @@ end
 local prev_lives    = 0
 local end_lv_was_zero = true   -- rising-edge guard for $07A1
 
+-- Diagnostic state (persists across frames). Reset in setup().
+local peak_timer = 0
+local win_ever   = false
+
 -- Win = $07A1 (EndOfLevelTimer) rising from 0 to non-zero, which the
 -- engine sets the frame Mario walks into the axe. Rising-edge guard
 -- protects against any leftover non-zero value carried in by the
@@ -74,6 +78,8 @@ challenge.run{
         emu.frameadvance()
         prev_lives      = read_u8(LIVES)
         end_lv_was_zero = (read_u8(END_LV_TIMER) == 0)
+        peak_timer      = 0
+        win_ever        = false
     end,
 
     win = axe_touched,
@@ -88,13 +94,16 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        -- Diagnostic. T is the End-of-Level timer; should jump from 0
-        -- to non-zero the frame Mario touches the axe. O is the
-        -- Operation mode ($0772) for cross-checking.
-        gui.text(8, 224, string.format(
-            "W:%d L:%d T:%02X O:%02X G:%02X",
-            read_u8(WORLD), read_u8(LEVEL),
-            read_u8(END_LV_TIMER), read_u8(OP_MODE), read_u8(GAME_MODE)))
+        -- Diagnostic — plain concatenation, no string.format. T is the
+        -- End-of-Level timer (should jump 0 -> non-zero at axe-touch);
+        -- O is operation mode ($0772) for cross-checking.
+        local t = read_u8(END_LV_TIMER)
+        local o = read_u8(OP_MODE)
+        if t > peak_timer then peak_timer = t end
+        if end_lv_was_zero and t > 0 then win_ever = true end
+        gui.text(8, 200, "ENDTIMER now=" .. t .. " peak=" .. peak_timer)
+        gui.text(8, 214, "OPMODE=" .. o)
+        gui.text(8, 228, "WIN HIT: " .. tostring(win_ever))
     end,
 
     result = function(state)
