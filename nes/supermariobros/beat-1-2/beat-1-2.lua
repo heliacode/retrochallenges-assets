@@ -87,7 +87,7 @@ challenge.run{
         prev_lives  = read_u8(LIVES)
     end,
 
-    win = flagpole_touched_in_starting_level,
+    win = flagpole_touched,
 
     fail = function()
         local now = read_u8(LIVES)
