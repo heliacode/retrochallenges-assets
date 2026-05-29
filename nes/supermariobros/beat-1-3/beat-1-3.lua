@@ -1,8 +1,8 @@
 -- Super Mario Bros. (World) — Beat 1-3
 --
--- Reach the World 1-3 flagpole as fast as possible. 1-3 is the
+-- Reach the World 1-3 flagpole as fast as you can. 1-3 is the
 -- bouncing-platforms-over-pits level. Single life: pit / enemy /
--- timer-zero ends it.
+-- timer-zero ends the run.
 
 local hud       = require("RcHud")
 local challenge = require("RcChallenge")
@@ -14,11 +14,9 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- Memory map — Data Crystal SMB RAM map.
 -- https://datacrystal.tcrf.net/wiki/Super_Mario_Bros./RAM_map
 -- ---------------------------------------------------------------------------
-local GAME_MODE    = 0x0770  -- 0x02 = in-level gameplay
 local PAUSE_FLAG   = 0x0776  -- nonzero = paused (freeze hook)
-local WORLD        = 0x075F  -- 0-indexed world
-local LEVEL        = 0x0760  -- 0-indexed level within world
-local PLAYER_FLOAT = 0x001D  -- 0x03 = sliding down flagpole (per RAM.md)
+local PLAYER_FLOAT = 0x001D  -- 0x03 = sliding down flagpole
+local GAME_MODE    = 0x0770  -- only used by the timer-zero fail check
 local LIVES        = 0x075A
 local TIMER_HI     = 0x07F8
 local TIMER_MID    = 0x07F9
@@ -40,52 +38,12 @@ local function timer_expired()
        and read_u8(GAME_MODE) == 0x02
 end
 
-local start_world = 0
-local start_level = 0
-local prev_lives  = 0
+local prev_lives = 0
 
--- Diagnostic state (persists across frames). Reset in setup().
-local peak_float    = 0
-local world_changed = false
-local level_changed = false
-local change_snap   = nil
-
--- Debug log beside challenge_data.json (Lua console is hidden in the
--- custom EmuHawk). TEMPORARY.
-local function debug_path()
-    local base = _G.RC and _G.RC.CHALLENGE_DATA_PATH
-    if not base then return "smb-1-3-debug.log" end
-    return (base:gsub("[^/\\]+$", "smb-1-3-debug.log"))
-end
-local DBG = debug_path()
-
-local function log_debug(f, w, l, g)
-    if (w ~= start_world or l ~= start_level) and not change_snap then
-        change_snap = "CHANGE @ peak_float=" .. peak_float
-            .. "  W " .. start_world .. "->" .. w
-            .. "  L " .. start_level .. "->" .. l
-            .. "  float=" .. f .. "  mode=" .. g
-    end
-    local fh = io.open(DBG, "w")
-    if not fh then return end
-    fh:write("peak_float=" .. peak_float .. "\n")
-    fh:write("start  W=" .. start_world .. " L=" .. start_level .. "\n")
-    fh:write("now    W=" .. w .. " L=" .. l .. " FLOAT=" .. f .. " MODE=" .. g .. "\n")
-    fh:write("world_changed=" .. tostring(world_changed)
-        .. " level_changed=" .. tostring(level_changed) .. "\n")
-    fh:write((change_snap or "no change yet") .. "\n")
-    fh:close()
-end
-
--- Provisional union: flagpole-slide OR world/level advancing past the
--- start. 1-3 has no internal sub-areas, so a world/level change can
--- only mean the level was completed (-> 1-4). The diagnostic readout
--- tells us whether the flagpole signal ($001D == 0x03) ever fired or
--- whether it was the level-change that carried the win.
-local function level_left()
-    if read_u8(GAME_MODE) ~= 0x02 then return false end
-    if read_u8(PLAYER_FLOAT) == 0x03 then return true end
-    return read_u8(WORLD) ~= start_world or read_u8(LEVEL) ~= start_level
+-- Win = flagpole slide ($001D == 0x03), no GAME_MODE gate. See
+-- beat-1-2.lua for why the gate was wrong. Run ends on first slide.
+local function flagpole_touched()
+    return read_u8(PLAYER_FLOAT) == 0x03
 end
 
 challenge.run{
@@ -97,15 +55,10 @@ challenge.run{
 
     setup = function(state)
         emu.frameadvance()
-        start_world   = read_u8(WORLD)
-        start_level   = read_u8(LEVEL)
-        prev_lives    = read_u8(LIVES)
-        peak_float    = 0
-        world_changed = false
-        level_changed = false
+        prev_lives = read_u8(LIVES)
     end,
 
-    win = level_left,
+    win = flagpole_touched,
 
     fail = function()
         local now = read_u8(LIVES)
@@ -117,17 +70,6 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        local f = read_u8(PLAYER_FLOAT)
-        local w = read_u8(WORLD)
-        local l = read_u8(LEVEL)
-        if f > peak_float then peak_float = f end
-        if w ~= start_world then world_changed = true end
-        if l ~= start_level then level_changed = true end
-        pcall(log_debug, f, w, l, read_u8(GAME_MODE))
-        gui.text(8, 188, "FLOAT peak=" .. peak_float .. " now=" .. f)
-        gui.text(8, 202, "W now=" .. w .. " start=" .. start_world .. " chg=" .. tostring(world_changed))
-        gui.text(8, 216, "L now=" .. l .. " start=" .. start_level .. " chg=" .. tostring(level_changed))
-        gui.text(8, 230, "MODE=" .. read_u8(GAME_MODE))
     end,
 
     result = function(state)
