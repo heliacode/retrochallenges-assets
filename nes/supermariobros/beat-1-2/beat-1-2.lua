@@ -57,6 +57,35 @@ local prev_lives  = 0
 local peak_float    = 0
 local world_changed = false
 local level_changed = false
+local change_snap   = nil   -- snapshot latched at first world/level change
+
+-- Debug log written beside challenge_data.json so the values can be
+-- read back outside BizHawk (the Lua console is hidden in the custom
+-- EmuHawk, so on-screen text is the only other channel). TEMPORARY.
+local function debug_path()
+    local base = _G.RC and _G.RC.CHALLENGE_DATA_PATH
+    if not base then return "smb-1-2-debug.log" end
+    return (base:gsub("[^/\\]+$", "smb-1-2-debug.log"))
+end
+local DBG = debug_path()
+
+local function log_debug(f, w, l, g)
+    if (w ~= start_world or l ~= start_level) and not change_snap then
+        change_snap = "CHANGE @ peak_float=" .. peak_float
+            .. "  W " .. start_world .. "->" .. w
+            .. "  L " .. start_level .. "->" .. l
+            .. "  float=" .. f .. "  mode=" .. g
+    end
+    local fh = io.open(DBG, "w")
+    if not fh then return end
+    fh:write("peak_float=" .. peak_float .. "\n")
+    fh:write("start  W=" .. start_world .. " L=" .. start_level .. "\n")
+    fh:write("now    W=" .. w .. " L=" .. l .. " FLOAT=" .. f .. " MODE=" .. g .. "\n")
+    fh:write("world_changed=" .. tostring(world_changed)
+        .. " level_changed=" .. tostring(level_changed) .. "\n")
+    fh:write((change_snap or "no change yet") .. "\n")
+    fh:close()
+end
 
 -- Win = flagpole-slide while in active gameplay. No world/level gate.
 --
@@ -119,6 +148,7 @@ challenge.run{
         if f > peak_float then peak_float = f end
         if w ~= start_world then world_changed = true end
         if l ~= start_level then level_changed = true end
+        pcall(log_debug, f, w, l, read_u8(GAME_MODE))
         gui.text(8, 188, "FLOAT peak=" .. peak_float .. " now=" .. f)
         gui.text(8, 202, "W now=" .. w .. " start=" .. start_world .. " chg=" .. tostring(world_changed))
         gui.text(8, 216, "L now=" .. l .. " start=" .. start_level .. " chg=" .. tostring(level_changed))
