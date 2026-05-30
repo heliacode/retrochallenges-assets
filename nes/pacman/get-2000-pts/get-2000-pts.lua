@@ -76,12 +76,9 @@ challenge.run{
     end,
 
     hud = function(state)
-        gui.text(10,  6, "SCORE")
-        hud.drawScore(48,  4, read_score(), TARGET_SCORE)
-        gui.text(10, 24, "LIVES")
-        gui.text(48, 24, tostring(read_u8(LIVES)))
-        gui.text(10, 42, "TIME")
-        hud.drawTime(48, 40, state.elapsed)
+        hud.drawTimeBgTopCenter(4, state.elapsed)
+        gui.text(10,  6, "LIVES")
+        gui.text(48,  6, tostring(read_u8(LIVES)))
     end,
 
     result = function(state)

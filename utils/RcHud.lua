@@ -128,6 +128,19 @@ function M.drawTimeBg(x, y, frames)
     M.drawDigits(x, y, str)
 end
 
+-- Variant that horizontally centers the timer across the NES
+-- viewport at the given y. Used by the Pac-Man challenges so the
+-- run timer sits cleanly above the maze instead of competing with
+-- the game's own score row on the left.
+local NES_SCREEN_W = 256
+function M.drawTimeBgTopCenter(y, frames)
+    local str = M.formatTime(frames)
+    local w = (#str - 1) * DIGIT_ADVANCE + DIGIT_DRAW_W
+    local x = math.floor((NES_SCREEN_W - w) / 2)
+    gui.drawRectangle(x - 2, y - 2, w + 4, DIGIT_DRAW_H + 4, 0xff000000, 0xff000000)
+    M.drawDigits(x, y, str)
+end
+
 function M.drawScore(x, y, current, target)
     local s = tostring(current or 0)
     if target then s = s .. " / " .. tostring(target) end

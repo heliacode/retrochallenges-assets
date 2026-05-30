@@ -88,14 +88,11 @@ challenge.run{
     end,
 
     hud = function(state)
-        gui.text(10,  6, "SCORE")
-        hud.drawScore(48,  4, read_score())
-        gui.text(10, 24, "CHAIN")
-        gui.text(48, 24, tostring(chain_count) .. " / 4")
-        gui.text(10, 42, "LIVES")
-        gui.text(48, 42, tostring(read_u8(LIVES)))
-        gui.text(10, 60, "TIME")
-        hud.drawTime(48, 58, state.elapsed)
+        hud.drawTimeBgTopCenter(4, state.elapsed)
+        gui.text(10,  6, "CHAIN")
+        gui.text(48,  6, tostring(chain_count) .. " / 4")
+        gui.text(10, 24, "LIVES")
+        gui.text(48, 24, tostring(read_u8(LIVES)))
     end,
 
     result = function(state)
