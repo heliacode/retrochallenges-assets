@@ -64,22 +64,12 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        -- Lives counter on a black bar (matches the timer treatment
-        -- so they read as a pair). The count uses the big sSmall
-        -- digit set — same font as the timer — so it doesn't feel
-        -- visually downgraded. "LIVES" and "OF 20" use drawText
-        -- because the big set doesn't ship letters; "OF 20" sits
-        -- after a dynamic offset so it tracks 1-digit -> 2-digit
-        -- growth. y bumped to 196 so the bar clears any bottom
-        -- viewport overscan that was clipping it.
-        local gained    = math.max(0, lives_gained())
-        local count_str = tostring(gained)
-        local DIGIT_ADV = 14  -- mirrors RcHud's drawDigits advance
-        local of_x      = 82 + #count_str * DIGIT_ADV + 4
-        gui.drawRectangle(8, 196, 200, 26, 0xff000000, 0xff000000)
-        hud.drawText(12, 206, "LIVES")
-        hud.drawDigits(82, 200, count_str)
-        hud.drawText(of_x, 206, "OF " .. TARGET_DELTA)
+        -- Just the count, big digits, on a tight black backdrop.
+        -- Placed low on screen (y=210) so it sits well clear of SMB's
+        -- own top-row HUD but still inside the visible viewport.
+        local count_str = tostring(math.max(0, lives_gained()))
+        gui.drawRectangle(8, 210, 50, 26, 0xff000000, 0xff000000)
+        hud.drawDigits(12, 214, count_str)
     end,
 
     result = function(state)
