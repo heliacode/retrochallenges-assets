@@ -64,12 +64,18 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        -- Just the count, big digits, on a tight black backdrop.
-        -- Placed low on screen (y=210) so it sits well clear of SMB's
-        -- own top-row HUD but still inside the visible viewport.
+        -- Just the count, big digits on a tight black backdrop, right-
+        -- aligned within the box so 1->2-digit growth doesn't shift
+        -- the trailing edge. Bumped up 10px from the previous y=210
+        -- so the digit baseline clears the bottom of the viewport.
         local count_str = tostring(math.max(0, lives_gained()))
-        gui.drawRectangle(8, 210, 50, 26, 0xff000000, 0xff000000)
-        hud.drawDigits(12, 214, count_str)
+        local DIGIT_ADV, DIGIT_W = 14, 18  -- mirrors RcHud drawDigits
+        local digit_width = (#count_str - 1) * DIGIT_ADV + DIGIT_W
+        local box_x, box_y, box_w, box_h = 8, 200, 50, 26
+        local right_pad = 4
+        local digit_x = box_x + box_w - right_pad - digit_width
+        gui.drawRectangle(box_x, box_y, box_w, box_h, 0xff000000, 0xff000000)
+        hud.drawDigits(digit_x, box_y + 4, count_str)
     end,
 
     result = function(state)
