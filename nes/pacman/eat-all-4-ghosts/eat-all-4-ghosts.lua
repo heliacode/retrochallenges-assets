@@ -88,7 +88,7 @@ challenge.run{
     end,
 
     hud = function(state)
-        hud.drawTimeBgTopCenter(4, state.elapsed)
+        hud.drawTimeBgRightMid(state.elapsed)
         gui.text(10,  6, "CHAIN")
         gui.text(48,  6, tostring(chain_count) .. " / 4")
         gui.text(10, 24, "LIVES")

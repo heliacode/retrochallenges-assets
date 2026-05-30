@@ -118,7 +118,7 @@ challenge.run{
         local by = read_u8(BLINKY_Y)
         local p2b_now = math.abs(px - bx) + math.abs(py - by)
 
-        hud.drawTimeBgTopCenter(4, state.elapsed)
+        hud.drawTimeBgRightMid(state.elapsed)
         gui.text(10,   6, "DELTA")
         gui.text(48,   6, tostring(last_score_delta))
         gui.text(10,  24, "P2B")

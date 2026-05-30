@@ -133,6 +133,7 @@ end
 -- run timer sits cleanly above the maze instead of competing with
 -- the game's own score row on the left.
 local NES_SCREEN_W = 256
+local NES_SCREEN_H = 240
 function M.drawTimeBgTopCenter(y, frames)
     local str = M.formatTime(frames)
     local w = (#str - 1) * DIGIT_ADVANCE + DIGIT_DRAW_W
@@ -395,6 +396,36 @@ function M.drawText(x, y, str)
             end
         end
     end
+end
+
+-- Right-aligned, vertically-centered timer using the smaller
+-- low_pixels_Text font (14px tall vs drawDigits' 22px). Width is
+-- computed from the actual char-by-char drawText advances so the
+-- black backdrop hugs the digits regardless of m/s/ms length.
+-- Defined after the TEXT_* locals so the upvalue references resolve.
+function M.drawTimeBgRightMid(frames)
+    local str = M.formatTime(frames)
+    local n = #str
+    local w = 0
+    for i = 1, n - 1 do
+        local ch = str:sub(i, i)
+        if TEXT_NARROW_SET[ch] or ch == ":" or ch == "." then
+            w = w + TEXT_NARROW_ADV
+        else
+            w = w + TEXT_ADVANCE
+        end
+    end
+    local last = str:sub(n, n)
+    if TEXT_NARROW_SET[last] or last == ":" or last == "." then
+        w = w + TEXT_NARROW_W
+    else
+        w = w + TEXT_LETTER_W
+    end
+    local right_margin = 4
+    local x = NES_SCREEN_W - right_margin - w
+    local y = math.floor((NES_SCREEN_H - TEXT_DRAW_H) / 2)
+    gui.drawRectangle(x - 2, y - 2, w + 4, TEXT_DRAW_H + 4, 0xff000000, 0xff000000)
+    M.drawText(x, y, str)
 end
 
 -- ---------------------------------------------------------------------------

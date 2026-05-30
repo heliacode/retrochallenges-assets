@@ -70,7 +70,7 @@ challenge.run{
     end,
 
     hud = function(state)
-        hud.drawTimeBgTopCenter(4, state.elapsed)
+        hud.drawTimeBgRightMid(state.elapsed)
         gui.text(10,  6, "DOTS")
         gui.text(48,  6, tostring(read_u8(PELLETS_REMAINING)))
         gui.text(10, 24, "LIVES")
