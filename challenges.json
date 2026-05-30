@@ -687,6 +687,26 @@
           }
         },
         {
+          "name": "Get 20 Lives",
+          "description": "Push the lives counter to 20 from a standing start in World 3-1. Shell loops, hidden 1-Ups, coin overflows, anything you can think of. Dying is free; only the clock matters.",
+          "lua": "nes\\supermariobros\\get-20-lives\\get-20-lives.lua",
+          "difficulty": "Medium",
+          "category": "score",
+          "estimatedTime": "30 sec – 5 min",
+          "minPlausibleFrames":  600,
+          "flagBelowFrames":    1440,
+          "grades": {
+            "by": "time",
+            "thresholds": [
+              { "grade": "SSS", "maxFrames":   1800 },
+              { "grade": "SS",  "maxFrames":   2880 },
+              { "grade": "S",   "maxFrames":   4500 },
+              { "grade": "A",   "maxFrames":   7200 },
+              { "grade": "B",   "maxFrames": 999999 }
+            ]
+          }
+        },
+        {
           "name": "Get 20 Coins",
           "description": "Twenty coins, one life. Where you grab them is your problem.",
           "lua": "nes\\supermariobros\\get-20-coins\\get-20-coins.lua",
@@ -738,10 +758,10 @@
     }
   ],
   "metadata": {
-    "version": "1.34.0",
-    "lastUpdated": "2026-05-27T00:00:00Z",
+    "version": "1.35.0",
+    "lastUpdated": "2026-05-30T00:00:00Z",
     "totalGames": 7,
-    "totalChallenges": 34,
+    "totalChallenges": 35,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
