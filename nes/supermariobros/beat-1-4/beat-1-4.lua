@@ -21,11 +21,8 @@ local write_u8 = memory.write_u8 or memory.writebyte
 -- Memory map — Data Crystal SMB RAM map.
 -- https://datacrystal.tcrf.net/wiki/Super_Mario_Bros./RAM_map
 -- ---------------------------------------------------------------------------
-local GAME_MODE    = 0x0770  -- 0x02 = in-level gameplay
-local OP_MODE      = 0x0772  -- diagnostic only (was the wrong signal)
+local GAME_MODE    = 0x0770  -- 0x02 = in-level gameplay (timer-zero fail check)
 local PAUSE_FLAG   = 0x0776  -- nonzero = paused (freeze hook)
-local WORLD        = 0x075F  -- diagnostic only
-local LEVEL        = 0x0760  -- diagnostic only
 local END_LV_TIMER = 0x07A1  -- non-zero once axe-touch / flagpole fires
 local LIVES        = 0x075A
 local TIMER_HI     = 0x07F8
@@ -52,10 +49,6 @@ end
 local prev_lives    = 0
 local end_lv_was_zero = true   -- rising-edge guard for $07A1
 
--- Diagnostic state (persists across frames). Reset in setup().
-local peak_timer = 0
-local win_ever   = false
-
 -- Win = $07A1 (EndOfLevelTimer) rising from 0 to non-zero, which the
 -- engine sets the frame Mario walks into the axe. Rising-edge guard
 -- protects against any leftover non-zero value carried in by the
@@ -78,8 +71,6 @@ challenge.run{
         emu.frameadvance()
         prev_lives      = read_u8(LIVES)
         end_lv_was_zero = (read_u8(END_LV_TIMER) == 0)
-        peak_timer      = 0
-        win_ever        = false
     end,
 
     win = axe_touched,
@@ -94,16 +85,6 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBg(10, 4, state.elapsed)
-        -- Diagnostic — plain concatenation, no string.format. T is the
-        -- End-of-Level timer (should jump 0 -> non-zero at axe-touch);
-        -- O is operation mode ($0772) for cross-checking.
-        local t = read_u8(END_LV_TIMER)
-        local o = read_u8(OP_MODE)
-        if t > peak_timer then peak_timer = t end
-        if end_lv_was_zero and t > 0 then win_ever = true end
-        gui.text(8, 200, "ENDTIMER now=" .. t .. " peak=" .. peak_timer)
-        gui.text(8, 214, "OPMODE=" .. o)
-        gui.text(8, 228, "WIN HIT: " .. tostring(win_ever))
     end,
 
     result = function(state)
