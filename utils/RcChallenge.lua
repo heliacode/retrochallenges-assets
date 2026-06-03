@@ -101,26 +101,63 @@ local function get_rom_hash()
     return h:upper()
 end
 
--- True if the loaded ROM is in the spec's allowlist (or no allowlist
--- given). Always logs the actual hash on first call so authors can
--- capture and pin canonical values for new challenges.
+-- The name BizHawk's bundled gamedb maps the loaded ROM to (e.g.
+-- "Kung Fu (USA)"). gamedb recognises many region/revision dumps by
+-- their internal hash, so a name match accepts a far wider set of
+-- legit dumps than our single iNES-file SHA1 — and the dumps it
+-- accepts are the ones BizHawk considers the same game, which is the
+-- set that's savestate-compatible. Returns nil if unavailable.
+local function get_rom_name()
+    if not gameinfo or not gameinfo.getromname then return nil end
+    local ok, n = pcall(gameinfo.getromname)
+    if not ok or not n or n == "" then return nil end
+    return n
+end
+
+-- True if the loaded ROM is accepted. Two ways to pass:
+--   1. exact iNES-file SHA1 in spec.expected_rom_hashes, OR
+--   2. spec.expected_rom_name is a (case-insensitive) substring of
+--      BizHawk's gamedb name for the ROM.
+-- (2) is the lenient path: it leans on BizHawk's own game-identity
+-- DB so region/revision dumps a player actually has are accepted
+-- without us enumerating every iNES-file hash (which also live in a
+-- different convention than the headerless SHA1s ROM sites publish).
+-- Always logs the actual hash + name on first call so authors can
+-- capture canonical values for new challenges.
 local _hash_logged = false
 local function verify_rom_hash(spec)
     local actual = get_rom_hash()
+    local rom_name = get_rom_name()
     if not _hash_logged then
-        if actual then
-            console.log("[RC] ROM SHA1: " .. actual)
-        else
-            console.log("[RC] ROM hash unavailable (gameinfo.getromhash missing)")
-        end
+        console.log("[RC] ROM SHA1: " .. (actual or "(unavailable)"))
+        console.log("[RC] ROM name: " .. (rom_name or "(unavailable)"))
         _hash_logged = true
     end
+
     local allow = spec.expected_rom_hashes
-    if not allow or #allow == 0 then return true end  -- not enforced
-    if not actual then return true end                -- can't enforce, don't fail-close
-    for _, expected in ipairs(allow) do
-        if actual == tostring(expected):upper() then return true end
+    local name_allow = spec.expected_rom_name
+    -- Nothing to enforce against → allow.
+    if (not allow or #allow == 0) and not name_allow then return true end
+
+    -- Exact hash match.
+    if actual and allow then
+        for _, expected in ipairs(allow) do
+            if actual == tostring(expected):upper() then return true end
+        end
     end
+
+    -- Lenient gamedb-name match.
+    if name_allow and rom_name then
+        if rom_name:lower():find(tostring(name_allow):lower(), 1, true) then
+            return true
+        end
+    end
+
+    -- If we couldn't read the hash AND there's no name rule that could
+    -- have matched, don't fail-close (preserves prior behaviour for
+    -- cores without gameinfo).
+    if not actual and not (name_allow and rom_name) then return true end
+
     return false
 end
 
@@ -464,6 +501,7 @@ function M.run(spec_in)
         has_per_game_freeze = (spec_in.freeze_game ~= nil),
         play_on_frames      = spec_in.play_on_frames    or 60,
         expected_rom_hashes = spec_in.expected_rom_hashes,
+        expected_rom_name   = spec_in.expected_rom_name,
     }
 
     if not memory or not (memory.read_u8 or memory.readbyte) then

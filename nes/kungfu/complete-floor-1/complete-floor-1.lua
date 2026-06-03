@@ -52,6 +52,14 @@ local boss_just_died = false
 challenge.run{
     savestate           = "savestates/complete-floor-1.state",
     expected_rom_hashes = { "9DF403DAC695B556ADBBF312DF37E3B76A2191AC" },  -- Kung Fu, iNES file SHA1
+    -- Lenient fallback: accept any dump BizHawk's gamedb identifies as
+    -- Kung Fu (USA / Europe / JP re-release / revisions), not just the
+    -- one iNES-file hash above. Players kept hitting "wrong ROM" with
+    -- legit dumps that differ only by header/region. Spartan X (the
+    -- different-PRG JP original) is named "Spartan X", so it won't
+    -- match "Kung Fu" and stays correctly rejected (it'd desync the
+    -- savestate).
+    expected_rom_name   = "Kung Fu",
 
     setup = function(state)
         emu.frameadvance()
