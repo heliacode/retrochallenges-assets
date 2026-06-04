@@ -111,6 +111,29 @@ function M.drawDigits(x, y, str)
     end
 end
 
+-- Monospace digits at an arbitrary scale. Every character advances by
+-- the SAME cell width regardless of glyph, so the string never jiggles
+-- as digits change (unlike the proportional drawText font). Returns the
+-- total drawn width. scale 1.0 == drawDigits size.
+function M.drawDigitsScaled(x, y, str, scale)
+    str = tostring(str or "")
+    scale = scale or 1.0
+    local w   = math.floor(DIGIT_DRAW_W  * scale + 0.5)
+    local h   = math.floor(DIGIT_DRAW_H  * scale + 0.5)
+    local adv = math.floor(DIGIT_ADVANCE * scale + 0.5)
+    local cx = x
+    for i = 1, #str do
+        local ch = str:sub(i, i)
+        local glyph = DIGIT_NAME[ch]
+        local rel = glyph and (glyph .. ".png")
+        if rel and M.assetExists(rel) then
+            gui.drawImage(asset_path(rel), cx, y, w, h)
+        end
+        cx = cx + adv   -- advance every char → monospace, no shifting
+    end
+    return #str * adv
+end
+
 function M.drawTime(x, y, frames)
     M.drawDigits(x, y, M.formatTime(frames))
 end
@@ -398,34 +421,28 @@ function M.drawText(x, y, str)
     end
 end
 
--- Right-aligned, vertically-centered timer using the smaller
--- low_pixels_Text font (14px tall vs drawDigits' 22px). Width is
--- computed from the actual char-by-char drawText advances so the
--- black backdrop hugs the digits regardless of m/s/ms length.
--- Defined after the TEXT_* locals so the upvalue references resolve.
+-- Right-aligned, vertically-centered timer for games where our HUD
+-- should stay out of the way (Pac-Man). Uses the MONOSPACE sSmall
+-- digit set scaled down — small footprint, and because every digit
+-- cell is the same width the time never jiggles as the numbers change
+-- (the old proportional drawText version shifted on every tick). The
+-- backdrop is sized to the fixed max-width time string so the box
+-- itself is rock-steady too.
+local TIME_RIGHT_SCALE = 0.6
 function M.drawTimeBgRightMid(frames)
     local str = M.formatTime(frames)
-    local n = #str
-    local w = 0
-    for i = 1, n - 1 do
-        local ch = str:sub(i, i)
-        if TEXT_NARROW_SET[ch] or ch == ":" or ch == "." then
-            w = w + TEXT_NARROW_ADV
-        else
-            w = w + TEXT_ADVANCE
-        end
-    end
-    local last = str:sub(n, n)
-    if TEXT_NARROW_SET[last] or last == ":" or last == "." then
-        w = w + TEXT_NARROW_W
-    else
-        w = w + TEXT_LETTER_W
-    end
-    local right_margin = 4
-    local x = NES_SCREEN_W - right_margin - w
-    local y = math.floor((NES_SCREEN_H - TEXT_DRAW_H) / 2)
-    gui.drawRectangle(x - 2, y - 2, w + 4, TEXT_DRAW_H + 4, 0xff000000, 0xff000000)
-    M.drawText(x, y, str)
+    local adv = math.floor(DIGIT_ADVANCE * TIME_RIGHT_SCALE + 0.5)
+    local h   = math.floor(DIGIT_DRAW_H  * TIME_RIGHT_SCALE + 0.5)
+    -- Fixed slot count ("M:SS.MMM" = 8) so the box never resizes; if a
+    -- run ever crosses 10 minutes the extra digit just extends left.
+    local slots = math.max(#str, 8)
+    local w = slots * adv
+    local right_margin = 6
+    local x = NES_SCREEN_W - right_margin - (#str * adv)
+    local y = math.floor((NES_SCREEN_H - h) / 2)
+    local box_x = NES_SCREEN_W - right_margin - w
+    gui.drawRectangle(box_x - 2, y - 2, w + 4, h + 4, 0xff000000, 0xff000000)
+    M.drawDigitsScaled(x, y, str, TIME_RIGHT_SCALE)
 end
 
 -- ---------------------------------------------------------------------------

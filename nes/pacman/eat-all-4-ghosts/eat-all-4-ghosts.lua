@@ -89,10 +89,10 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBgRightMid(state.elapsed)
-        gui.text(10,  6, "CHAIN")
-        gui.text(48,  6, tostring(chain_count) .. " / 4")
-        gui.text(10, 24, "LIVES")
-        gui.text(48, 24, tostring(read_u8(LIVES)))
+        -- CHAIN progress only — score/lives already live in Pac-Man's
+        -- native HUD, so we don't duplicate them over the maze.
+        gui.text(10, 6, "CHAIN")
+        gui.text(48, 6, tostring(chain_count) .. " / 4")
     end,
 
     result = function(state)

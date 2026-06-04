@@ -112,19 +112,7 @@ challenge.run{
     end,
 
     hud = function(state)
-        local px = read_u8(PACMAN_X)
-        local py = read_u8(PACMAN_Y)
-        local bx = read_u8(BLINKY_X)
-        local by = read_u8(BLINKY_Y)
-        local p2b_now = math.abs(px - bx) + math.abs(py - by)
-
         hud.drawTimeBgRightMid(state.elapsed)
-        gui.text(10,   6, "DELTA")
-        gui.text(48,   6, tostring(last_score_delta))
-        gui.text(10,  24, "P2B")
-        gui.text(48,  24, tostring(p2b_now))
-        gui.text(10,  42, "LAST EAT")
-        gui.text(60,  42, string.format("%d  p2b=%d", last_eat_delta, last_p2b_at_eat))
     end,
 
     result = function(state)

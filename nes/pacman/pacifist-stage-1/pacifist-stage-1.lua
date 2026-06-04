@@ -74,10 +74,9 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBgRightMid(state.elapsed)
-        gui.text(10,  6, "DOTS")
-        gui.text(48,  6, tostring(read_u8(PELLETS_REMAINING)))
-        gui.text(10, 24, "LIVES")
-        gui.text(48, 24, tostring(read_u8(LIVES)))
+        -- DOTS remaining only — score/lives are in Pac-Man's native HUD.
+        gui.text(10, 6, "DOTS")
+        gui.text(48, 6, tostring(read_u8(PELLETS_REMAINING)))
     end,
 
     result = function(state)

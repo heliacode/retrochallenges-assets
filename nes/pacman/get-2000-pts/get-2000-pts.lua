@@ -77,8 +77,8 @@ challenge.run{
 
     hud = function(state)
         hud.drawTimeBgRightMid(state.elapsed)
-        gui.text(10,  6, "LIVES")
-        gui.text(48,  6, tostring(read_u8(LIVES)))
+        -- Timer only — score (the goal) and lives are both in Pac-Man's
+        -- native HUD, so nothing else needs to sit over the maze.
     end,
 
     result = function(state)
