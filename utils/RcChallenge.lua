@@ -135,28 +135,43 @@ local function verify_rom_hash(spec)
     end
 
     local allow = spec.expected_rom_hashes
-    local name_allow = spec.expected_rom_name
-    -- Nothing to enforce against → allow.
+    -- Name rule: an explicit spec.expected_rom_name wins; otherwise we
+    -- fall back to the challenge's own game (RC.GAME, injected by the
+    -- prelude). This makes the LAUNCH gate as lenient as the desktop
+    -- ROM scanner — any dump BizHawk's gamedb identifies as this game
+    -- is accepted, not just the one pinned iNES-file (headered) hash.
+    -- That's the fix for "scanner finds my ROM but launch rejects it":
+    -- No-Intro dumps differ by header (so the headered hash misses) but
+    -- BizHawk still names them correctly.
+    local name_allow = spec.expected_rom_name or RC.GAME
+
+    -- Nothing at all to enforce against → allow.
     if (not allow or #allow == 0) and not name_allow then return true end
 
-    -- Exact hash match.
+    -- 1. Exact iNES-file (headered) hash match — the strict path.
     if actual and allow then
         for _, expected in ipairs(allow) do
             if actual == tostring(expected):upper() then return true end
         end
     end
 
-    -- Lenient gamedb-name match.
-    if name_allow and rom_name then
-        if rom_name:lower():find(tostring(name_allow):lower(), 1, true) then
-            return true
+    -- 2. gamedb-name match. An EXPLICIT expected_rom_name matches as a
+    --    substring (author's choice). The RC.GAME fallback matches as a
+    --    prefix so e.g. "Mario Bros." can't accept a "Super Mario Bros.
+    --    (World)" ROM, while "Super Mario Bros." still accepts it.
+    if rom_name then
+        local rn = rom_name:lower()
+        if spec.expected_rom_name then
+            if rn:find(spec.expected_rom_name:lower(), 1, true) then return true end
+        elseif RC.GAME then
+            local g = RC.GAME:lower()
+            if rn:sub(1, #g) == g then return true end
         end
     end
 
-    -- If we couldn't read the hash AND there's no name rule that could
-    -- have matched, don't fail-close (preserves prior behaviour for
-    -- cores without gameinfo).
-    if not actual and not (name_allow and rom_name) then return true end
+    -- If we couldn't read the hash AND no name rule could have matched,
+    -- don't fail-close (preserves behaviour for cores without gameinfo).
+    if not actual and not rom_name then return true end
 
     return false
 end
