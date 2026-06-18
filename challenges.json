@@ -755,12 +755,19 @@
           }
         }
       ]
+    },
+    {
+      "name": "Karnov",
+      "description": "Data East run-and-gun platformer — fireballs, power-ups, and a final dragon. Challenges coming soon.",
+      "rom": "roms\\karnov.nes",
+      "boxArtUrl": "https://raw.githubusercontent.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System/master/Named_Boxarts/Karnov%20(USA).png",
+      "challenges": []
     }
   ],
   "metadata": {
-    "version": "1.35.0",
-    "lastUpdated": "2026-05-30T00:00:00Z",
-    "totalGames": 7,
+    "version": "1.36.0",
+    "lastUpdated": "2026-06-16T00:00:00Z",
+    "totalGames": 8,
     "totalChallenges": 35,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival"],
