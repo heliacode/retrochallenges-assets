@@ -530,14 +530,21 @@ function M.run(spec_in)
     -- the wrong RAM map — far better than weird memory addresses appearing
     -- to "kind of work" because of coincidental layout overlap.
     if not verify_rom_hash(spec) then
-        local actual = get_rom_hash() or "?"
+        -- NB: index expected_rom_hashes defensively — many challenges set
+        -- only expected_rom_name (or rely on RC.GAME), so the table can be
+        -- nil here. The old code did spec.expected_rom_hashes[1] directly
+        -- and crashed those challenges with a nil-index error.
+        local actual      = get_rom_hash() or "(unavailable)"
+        local actual_name = get_rom_name() or "(unrecognised)"
         while true do
             spec.freeze_game()
             neutralize_input()
-            gui.text(10, 10, "Wrong ROM for this challenge.")
-            gui.text(10, 25, "Expected: " .. (spec.expected_rom_hashes[1] or "?"))
-            gui.text(10, 40, "Got:      " .. actual)
-            gui.text(10, 60, "Load the correct ROM in BizHawk and relaunch.")
+            gui.text(10, 10, "This ROM isn't recognised as")
+            gui.text(10, 25, (RC.GAME or "this game") .. " for this challenge.")
+            gui.text(10, 45, "Your ROM: " .. actual_name)
+            gui.text(10, 60, "SHA1: " .. actual)
+            gui.text(10, 85, "Use a standard (No-Intro / GoodNES) dump")
+            gui.text(10, 100, "of " .. (RC.GAME or "the game") .. " and relaunch.")
             emu.frameadvance()
         end
     end
