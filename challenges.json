@@ -145,6 +145,26 @@
               { "grade": "B",   "maxFrames": 999999 }
             ]
           }
+        },
+        {
+          "name": "First Level — No Damage",
+          "description": "Beat Castlevania's first block & the Phantom Bat with zero hits. Each hit cuts your score; death ends the run.",
+          "lua": "nes\\castlevania\\flawlessnes-firstlevel\\flawlessnes-firstlevel.lua",
+          "difficulty": "Hard",
+          "category": "flawlessnes",
+          "estimatedTime": "2-5 minutes",
+          "minPlausibleFrames": 1500,
+          "flagBelowFrames":   3000,
+          "grades": {
+            "by": "hits",
+            "thresholds": [
+              { "grade": "Flawless", "maxHits": 0 },
+              { "grade": "A",        "maxHits": 1 },
+              { "grade": "B",        "maxHits": 2 },
+              { "grade": "C",        "maxHits": 3 },
+              { "grade": "D",        "maxHits": 9999 }
+            ]
+          }
         }
       ]
     },
@@ -765,12 +785,12 @@
     }
   ],
   "metadata": {
-    "version": "1.36.0",
-    "lastUpdated": "2026-06-16T00:00:00Z",
+    "version": "1.37.0",
+    "lastUpdated": "2026-06-22T00:00:00Z",
     "totalGames": 8,
-    "totalChallenges": 35,
+    "totalChallenges": 36,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
-    "categories": ["boss", "score", "speedrun", "survival"],
+    "categories": ["boss", "score", "speedrun", "survival", "flawlessnes"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
   }
 }
