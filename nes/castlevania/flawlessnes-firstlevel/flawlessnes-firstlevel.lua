@@ -44,24 +44,14 @@ local HEALTH_REAL  = 0x0045   -- Simon real health (0x40 = full); display copy i
 local BOSS_HEALTH  = 0x01A9   -- Boss Real Health (Phantom Bat HP in Block 1)
 local BOSS_SCREEN  = 0x0048   -- non-zero while a boss locks the screen
 
-local FULL_HEALTH  = 0x40
-
 -- ---------------------------------------------------------------------------
--- FlawlessNES scoring (the fixed table, computed not hard-coded so the HUD
--- and the submitted score agree exactly).
+-- FlawlessNES scoring (the fixed table, computed not hard-coded so the
+-- submitted score and the leaderboard's rank derivation agree exactly).
 -- ---------------------------------------------------------------------------
 local function score_for_hits(h)
     if h <= 0 then return 5000 end
     if h <= 4 then return 3500 - 750 * (h - 1) end      -- 1..4 -> 3500/2750/2000/1250
     return math.floor(1250 * (0.85 ^ (h - 4)) + 0.5)    -- 5+ -> geometric decay
-end
-
-local function rank_for_hits(h)
-    if h <= 0 then return "FLAWLESS" end
-    if h == 1 then return "A" end
-    if h == 2 then return "B" end
-    if h == 3 then return "C" end
-    return "D"
 end
 
 -- ---------------------------------------------------------------------------
@@ -134,17 +124,14 @@ challenge.run{
         return false
     end,
 
+    -- Minimal HUD: the hit count, nothing else. No timer, score, HP, or
+    -- rank — Castlevania draws the bat's own HP bar during the fight, and
+    -- the final score lands on the completion banner.
     hud = function(state)
-        hud.drawStandardHud(state, {
-            score    = score_for_hits(hits),
-            hp       = read_u8(HEALTH_REAL),
-            hpMax    = FULL_HEALTH,
-            extras   = {
-                { label = "HITS", value = tostring(hits) },
-                { label = "RANK", value = rank_for_hits(hits) },
-                boss_engaged and { label = "BAT", value = tostring(read_u8(BOSS_HEALTH)) } or nil,
-            },
-        })
+        local PANEL = 0xa0000000
+        gui.drawRectangle(0, 0, 86, 44, PANEL, PANEL)
+        gui.text(10, 8, "HITS")
+        hud.drawDigits(10, 18, tostring(hits))
     end,
 
     -- score IS the ranking axis for FlawlessNES (higher = fewer hits). The
