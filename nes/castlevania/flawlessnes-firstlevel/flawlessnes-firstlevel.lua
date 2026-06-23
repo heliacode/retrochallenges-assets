@@ -124,14 +124,9 @@ challenge.run{
         return false
     end,
 
-    -- Minimal HUD: the hit count, nothing else. No timer, score, HP, or
-    -- rank — Castlevania draws the bat's own HP bar during the fight, and
-    -- the final score lands on the completion banner.
+    -- Minimal HUD: just the hit count, plain font, no background box.
     hud = function(state)
-        local PANEL = 0xa0000000
-        gui.drawRectangle(0, 0, 86, 44, PANEL, PANEL)
-        gui.text(10, 8, "HITS")
-        hud.drawDigits(10, 18, tostring(hits))
+        gui.text(10, 10, "Hits: " .. tostring(hits))
     end,
 
     -- score IS the ranking axis for FlawlessNES (higher = fewer hits). The
