@@ -26,8 +26,8 @@ Visit datacrystal at: https://datacrystal.romhacking.net/
 | $0022 | | User Paused |
 | $0024 | | Current ROM Bank |
 | $0027 | | Previous ROM Bank |
-| $0028 | | Stage |
-| $0029 | | Previous Stage |
+| $0028 | | Stage (internal id — does NOT match the on-screen STAGE number; e.g. reads 20 while the HUD shows STAGE 16) |
+| $0029 | | **On-screen STAGE counter** — this is the value the status bar displays. Use $0029 (not $0028) for "reach stage N" challenges. Verified by cross-referencing three savestates (HUD 7/13/16 → $0029 7/13/16). datacrystal labels it "Previous Stage" but empirically it holds the current displayed stage. |
 | $002A | | Lives (01 = last life, can be set to #ff but displays as 99 max) |
 | $002B | | Difficulty |
 | $002C | | Score Target (grants 1Up when equal to $07FE, then increments by 3) |
