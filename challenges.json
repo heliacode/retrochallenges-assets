@@ -147,7 +147,7 @@
           }
         },
         {
-          "name": "First Level — No Damage",
+          "name": "First Level",
           "description": "Beat Castlevania's first block & the Phantom Bat with zero hits. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-firstlevel\\flawlessnes-firstlevel.lua",
           "difficulty": "Hard",
@@ -167,7 +167,7 @@
           }
         },
         {
-          "name": "Phantom Bat — No Damage",
+          "name": "Phantom Bat",
           "description": "Beat the Phantom Bat without taking a single hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-batboss\\flawlessnes-batboss.lua",
           "difficulty": "Medium",
@@ -187,7 +187,7 @@
           }
         },
         {
-          "name": "Second Level — No Damage",
+          "name": "Second Level",
           "description": "Clear Castlevania's Block 2 & beat Medusa with zero hits. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-secondlevel\\flawlessnes-secondlevel.lua",
           "difficulty": "Hard",
@@ -207,7 +207,7 @@
           }
         },
         {
-          "name": "Medusa — No Damage",
+          "name": "Medusa",
           "description": "Beat Medusa without taking a single hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-medusaboss\\flawlessnes-medusaboss.lua",
           "difficulty": "Hard",
@@ -227,7 +227,7 @@
           }
         },
         {
-          "name": "Third Level — No Damage",
+          "name": "Third Level",
           "description": "Clear Castlevania's Block 3 & beat the Mummies with zero hits. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-thirdlevel\\flawlessnes-thirdlevel.lua",
           "difficulty": "Hard",
@@ -247,7 +247,7 @@
           }
         },
         {
-          "name": "Axe Knight Stairs — No Damage",
+          "name": "Axe Knight Stairs",
           "description": "Survive the Axe Knight and climb the stairs without taking a hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-axeman-stairs\\flawlessnes-axeman-stairs.lua",
           "difficulty": "Hard",
@@ -267,7 +267,7 @@
           }
         },
         {
-          "name": "Bats & Bones — No Damage",
+          "name": "Bats & Bones",
           "description": "Fight through the bat & skeleton gauntlet to Stage 8 without taking a hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-bats-and-bones\\flawlessnes-bats-and-bones.lua",
           "difficulty": "Hard",
@@ -287,7 +287,7 @@
           }
         },
         {
-          "name": "Death Corridor — No Damage",
+          "name": "Death Corridor",
           "description": "Reach Death's arena through the corridor without taking a hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-death-corridor\\flawlessnes-death-corridor.lua",
           "difficulty": "Hard",
@@ -307,7 +307,7 @@
           }
         },
         {
-          "name": "Death — No Damage",
+          "name": "Death",
           "description": "Beat Death without taking a single hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-deathboss\\flawlessnes-deathboss.lua",
           "difficulty": "Hard",
@@ -327,7 +327,7 @@
           }
         },
         {
-          "name": "Dracula — No Damage",
+          "name": "Dracula",
           "description": "Beat Dracula without taking a single hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-draculaboss\\flawlessnes-draculaboss.lua",
           "difficulty": "Very Hard",
@@ -347,7 +347,7 @@
           }
         },
         {
-          "name": "Final Bridge — No Damage",
+          "name": "Final Bridge",
           "description": "Cross the final bridge into Stage 17 without taking a hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-final-bridge\\flawlessnes-final-bridge.lua",
           "difficulty": "Hard",
@@ -367,7 +367,7 @@
           }
         },
         {
-          "name": "Fleaman Alley — No Damage",
+          "name": "Fleaman Alley",
           "description": "Get through the fleaman gauntlet into Stage 12 without taking a hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-fleaman-alley\\flawlessnes-fleaman-alley.lua",
           "difficulty": "Hard",
@@ -387,7 +387,7 @@
           }
         },
         {
-          "name": "Frank & Beans — No Damage",
+          "name": "Frank & Beans",
           "description": "Beat Frankenstein & Igor without taking a single hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-frank-n-beans\\flawlessnes-frank-n-beans.lua",
           "difficulty": "Hard",
@@ -407,7 +407,7 @@
           }
         },
         {
-          "name": "Mummy Bridge — No Damage",
+          "name": "Mummy Bridge",
           "description": "Reach the Mummies' boss room without taking a hit. Each hit cuts your score; death ends the run.",
           "lua": "nes\\castlevania\\flawlessnes-mummy-bridge\\flawlessnes-mummy-bridge.lua",
           "difficulty": "Hard",
@@ -1045,7 +1045,7 @@
     }
   ],
   "metadata": {
-    "version": "1.42.0",
+    "version": "1.42.1",
     "lastUpdated": "2026-06-24T00:00:00Z",
     "totalGames": 8,
     "totalChallenges": 49,
