@@ -414,18 +414,26 @@ local function show_complete_screen_forever(spec, payload)
         neutralize_input()
         silence_apu()
         hud.banner.win()
-        if payload.completionTime then
-            hud.drawText(10, 185, "FINAL TIME")
-            -- Match the in-run timer's bigger sSmall digit set instead
-            -- of the smaller text-font glyphs — keeps the banner from
-            -- visually shrinking the time after a finished challenge.
-            -- y bumped up 10px from 211 so the digit baseline doesn't
-            -- get clipped at the bottom of the 240px screen.
-            hud.drawTime(10, 201, payload.completionTime)
-        end
-        if payload.score then
-            hud.drawText(160, 185, "SCORE")
-            hud.drawDigits(160, 201, tostring(payload.score))
+        if payload.grade ~= nil then
+            -- FlawlessNES-style result: show ONLY the grade (rank). Final
+            -- time and score are irrelevant to a no-damage run, so we skip
+            -- them entirely when the challenge reports a grade.
+            hud.drawText(10, 185, "GRADE")
+            hud.drawText(10, 201, tostring(payload.grade))
+        else
+            if payload.completionTime then
+                hud.drawText(10, 185, "FINAL TIME")
+                -- Match the in-run timer's bigger sSmall digit set instead
+                -- of the smaller text-font glyphs — keeps the banner from
+                -- visually shrinking the time after a finished challenge.
+                -- y bumped up 10px from 211 so the digit baseline doesn't
+                -- get clipped at the bottom of the 240px screen.
+                hud.drawTime(10, 201, payload.completionTime)
+            end
+            if payload.score then
+                hud.drawText(160, 185, "SCORE")
+                hud.drawDigits(160, 201, tostring(payload.score))
+            end
         end
         -- Pixel-art [R] glyph + image-font label, falls back to text if
         -- either asset is missing.

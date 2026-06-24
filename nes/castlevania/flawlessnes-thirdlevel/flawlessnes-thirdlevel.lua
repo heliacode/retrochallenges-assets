@@ -53,6 +53,16 @@ local function score_for_hits(h)
     return math.floor(1250 * (0.85 ^ (h - 4)) + 0.5)    -- 5+ -> geometric decay
 end
 
+-- Rank label shown on the completion banner (mirrors the leaderboard's
+-- Flawless/A/B/C/D derivation from score).
+local function rank_for_hits(h)
+    if h <= 0 then return "FLAWLESS" end
+    if h == 1 then return "A" end
+    if h == 2 then return "B" end
+    if h == 3 then return "C" end
+    return "D"
+end
+
 -- ---------------------------------------------------------------------------
 -- Castlevania per-game freeze (USER_PAUSED byte).
 -- ---------------------------------------------------------------------------
@@ -136,6 +146,7 @@ challenge.run{
             score          = score_for_hits(hits),
             completionTime = state.elapsed,
             hits           = hits,
+            grade          = rank_for_hits(hits),
         }
     end,
 }
