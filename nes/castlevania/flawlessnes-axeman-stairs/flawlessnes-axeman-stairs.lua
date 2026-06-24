@@ -39,7 +39,7 @@ local USER_PAUSED  = 0x0022   -- write 1 to freeze CV's own state machine
 local LIVES        = 0x002A   -- decremented on every death cause (enemy/pit/timer)
 local HEALTH_REAL  = 0x0045   -- Simon real health (0x40 = full); display copy is $0044
 local STAGE        = 0x0029   -- On-screen STAGE counter (the value the HUD shows).
-                              -- Changes when the stairs trigger a scene load.
+local TARGET_STAGE = 15       -- Win when the on-screen STAGE reaches this.
 
 -- ---------------------------------------------------------------------------
 -- FlawlessNES scoring (the fixed table, computed not hard-coded so the
@@ -115,11 +115,12 @@ challenge.run{
         prev_health = hp
     end,
 
-    -- Win = the stairs loaded the next scene (STAGE counter advanced) AND
-    -- still alive. The lives guard blocks a death-reload from registering.
+    -- Win = reached the target stage (15) AND still alive. Absolute target
+    -- (simpler than a relative advance). The lives guard blocks a death-
+    -- reload from registering as a win.
     win = function()
         if read_u8(LIVES) < lives_at_start then return false end
-        return read_u8(STAGE) > stage_at_start
+        return read_u8(STAGE) >= TARGET_STAGE
     end,
 
     -- Death ends the run. Lives decrement is the universal CV death signal.
