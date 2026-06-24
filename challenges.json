@@ -185,6 +185,66 @@
               { "grade": "D",        "maxHits": 9999 }
             ]
           }
+        },
+        {
+          "name": "Second Level — No Damage",
+          "description": "Clear Castlevania's Block 2 & beat Medusa with zero hits. Each hit cuts your score; death ends the run.",
+          "lua": "nes\\castlevania\\flawlessnes-secondlevel\\flawlessnes-secondlevel.lua",
+          "difficulty": "Hard",
+          "category": "flawlessnes",
+          "estimatedTime": "3-6 minutes",
+          "minPlausibleFrames": 2000,
+          "flagBelowFrames":    4000,
+          "grades": {
+            "by": "hits",
+            "thresholds": [
+              { "grade": "Flawless", "maxHits": 0 },
+              { "grade": "A",        "maxHits": 1 },
+              { "grade": "B",        "maxHits": 2 },
+              { "grade": "C",        "maxHits": 3 },
+              { "grade": "D",        "maxHits": 9999 }
+            ]
+          }
+        },
+        {
+          "name": "Medusa — No Damage",
+          "description": "Beat Medusa without taking a single hit. Each hit cuts your score; death ends the run.",
+          "lua": "nes\\castlevania\\flawlessnes-medusaboss\\flawlessnes-medusaboss.lua",
+          "difficulty": "Hard",
+          "category": "flawlessnes",
+          "estimatedTime": "1-3 minutes",
+          "minPlausibleFrames": 300,
+          "flagBelowFrames":    800,
+          "grades": {
+            "by": "hits",
+            "thresholds": [
+              { "grade": "Flawless", "maxHits": 0 },
+              { "grade": "A",        "maxHits": 1 },
+              { "grade": "B",        "maxHits": 2 },
+              { "grade": "C",        "maxHits": 3 },
+              { "grade": "D",        "maxHits": 9999 }
+            ]
+          }
+        },
+        {
+          "name": "Third Level — No Damage",
+          "description": "Clear Castlevania's Block 3 & beat the Mummies with zero hits. Each hit cuts your score; death ends the run.",
+          "lua": "nes\\castlevania\\flawlessnes-thirdlevel\\flawlessnes-thirdlevel.lua",
+          "difficulty": "Hard",
+          "category": "flawlessnes",
+          "estimatedTime": "3-6 minutes",
+          "minPlausibleFrames": 2000,
+          "flagBelowFrames":    4000,
+          "grades": {
+            "by": "hits",
+            "thresholds": [
+              { "grade": "Flawless", "maxHits": 0 },
+              { "grade": "A",        "maxHits": 1 },
+              { "grade": "B",        "maxHits": 2 },
+              { "grade": "C",        "maxHits": 3 },
+              { "grade": "D",        "maxHits": 9999 }
+            ]
+          }
         }
       ]
     },
@@ -805,10 +865,10 @@
     }
   ],
   "metadata": {
-    "version": "1.38.0",
-    "lastUpdated": "2026-06-22T00:00:00Z",
+    "version": "1.39.0",
+    "lastUpdated": "2026-06-24T00:00:00Z",
     "totalGames": 8,
-    "totalChallenges": 37,
+    "totalChallenges": 40,
     "difficultyLevels": ["Easy", "Medium", "Hard", "Very Hard"],
     "categories": ["boss", "score", "speedrun", "survival", "flawlessnes"],
     "gradePoints": { "SSS": 100, "SS": 75, "S": 50, "A": 25, "B": 10 }
