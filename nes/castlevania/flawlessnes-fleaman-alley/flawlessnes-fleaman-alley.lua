@@ -41,7 +41,9 @@ local write_u8 = memory.write_u8 or memory.writebyte
 local USER_PAUSED  = 0x0022   -- write 1 to freeze CV's own state machine
 local LIVES        = 0x002A   -- decremented on every death cause (enemy/pit/timer)
 local HEALTH_REAL  = 0x0045   -- Simon real health (0x40 = full); display copy is $0044
-local STAGE        = 0x0028   -- Current stage (advances as Simon crosses sub-areas)
+local STAGE        = 0x0029   -- On-screen STAGE counter. Verified via savestate
+                              -- RAM that $0029 holds the displayed stage number;
+                              -- $0028 is an internal id that does NOT match the HUD.
 
 -- ---------------------------------------------------------------------------
 -- FlawlessNES scoring (the fixed table, computed not hard-coded so the

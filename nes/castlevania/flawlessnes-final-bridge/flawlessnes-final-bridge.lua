@@ -40,7 +40,9 @@ local write_u8 = memory.write_u8 or memory.writebyte
 local USER_PAUSED  = 0x0022   -- write 1 to freeze CV's own state machine
 local LIVES        = 0x002A   -- decremented on every death cause (enemy/pit/timer)
 local HEALTH_REAL  = 0x0045   -- Simon real health (0x40 = full); display copy is $0044
-local STAGE        = 0x0028   -- Current stage (advances as Simon crosses sub-areas)
+local STAGE        = 0x0029   -- On-screen STAGE counter. Verified via savestate
+                              -- RAM that $0029 holds the displayed stage number;
+                              -- $0028 is an internal id that does NOT match the HUD.
 
 -- ---------------------------------------------------------------------------
 -- FlawlessNES scoring (the fixed table, computed not hard-coded so the
@@ -134,12 +136,6 @@ challenge.run{
     -- Minimal HUD: just the hit count, plain font, no background box.
     hud = function(state)
         gui.text(10, 10, "Hits: " .. tostring(hits))
-        -- TEMP DEBUG (remove once the stage-win is confirmed): the win
-        -- watches $0028, but reaching STAGE 17 didn't trigger it — so $0028
-        -- isn't the byte that moves. Read these live at STAGE 16 vs 17 to
-        -- find the one that changes. s28=$0028 s29=$0029 sys=$0018 (state).
-        gui.text(10, 22, string.format("s28:%d s29:%d sys:%d",
-            read_u8(STAGE), read_u8(0x0029), read_u8(0x0018)))
     end,
 
     -- score IS the ranking axis for FlawlessNES (higher = fewer hits). The

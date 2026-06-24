@@ -124,15 +124,14 @@ challenge.run{
         prev_health = hp
     end,
 
-    -- Win = Simon went up the stairs AND is still alive. These are in-screen
-    -- climbing stairs, so the primary signal is Simon's "Climbing Stairs"
-    -- state ($046C == 0x04); the Floor-change is kept as a fallback for
-    -- between-screen stair transitions. The lives guard blocks a death-
-    -- teleport from registering as a win.
+    -- Win = Simon is on the stairs climbing ($046C == 0x04) AND still alive.
+    -- These are in-screen stairs, so $0046 is NOT a floor counter here — it
+    -- holds volatile data that changes every frame, which is why the earlier
+    -- floor-change fallback false-fired on frame 0. Removed it entirely; the
+    -- Climbing-Stairs state is the signal. Lives guard blocks a death-teleport.
     win = function()
         if read_u8(LIVES) < lives_at_start then return false end
-        if read_u8(SIMON_STATE) == STATE_CLIMB then return true end
-        return read_u8(FLOOR) ~= floor_at_start
+        return read_u8(SIMON_STATE) == STATE_CLIMB
     end,
 
     -- Death ends the run. Lives decrement is the universal CV death signal.
@@ -146,10 +145,9 @@ challenge.run{
     -- Minimal HUD: just the hit count, plain font, no background box.
     hud = function(state)
         gui.text(10, 10, "Hits: " .. tostring(hits))
-        -- TEMP DEBUG (remove once the stair-win is confirmed): live Simon
-        -- state + floor, so if the win still doesn't fire we can read the
-        -- value Simon shows while on the stairs instead of guessing again.
-        gui.text(10, 22, "st:" .. tostring(read_u8(SIMON_STATE)) .. " fl:" .. tostring(read_u8(FLOOR)))
+        -- TEMP DEBUG (remove once confirmed): Simon's state byte. Should read
+        -- 0 standing/walking and 4 while climbing the stairs (= win).
+        gui.text(10, 22, "st:" .. tostring(read_u8(SIMON_STATE)))
     end,
 
     -- score IS the ranking axis for FlawlessNES (higher = fewer hits). The
