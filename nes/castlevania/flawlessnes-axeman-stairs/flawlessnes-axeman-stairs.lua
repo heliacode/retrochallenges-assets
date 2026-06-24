@@ -42,8 +42,13 @@ local write_u8 = memory.write_u8 or memory.writebyte
 local USER_PAUSED  = 0x0022   -- write 1 to freeze CV's own state machine
 local LIVES        = 0x002A   -- decremented on every death cause (enemy/pit/timer)
 local HEALTH_REAL  = 0x0045   -- Simon real health (0x40 = full); display copy is $0044
-local FLOOR        = 0x0046   -- Stair-floor counter; increments when Simon
-                              -- completes a staircase transition.
+local FLOOR        = 0x0046   -- Stair-floor counter; only changes on a FLOOR
+                              -- transition (between-screen stairs), not the
+                              -- in-screen climbing stairs in this room.
+local SIMON_STATE  = 0x046C   -- Simon's state (instance 0). 0x04 = Climbing
+                              -- Stairs — fires while Simon ascends/descends a
+                              -- staircase, including in-screen ones.
+local STATE_CLIMB  = 0x04
 
 -- ---------------------------------------------------------------------------
 -- FlawlessNES scoring (the fixed table, computed not hard-coded so the
@@ -119,11 +124,15 @@ challenge.run{
         prev_health = hp
     end,
 
-    -- Win = climbed the stairs (Floor incremented) AND still alive. The
-    -- lives guard blocks a death-teleport from registering as a win.
+    -- Win = Simon went up the stairs AND is still alive. These are in-screen
+    -- climbing stairs, so the primary signal is Simon's "Climbing Stairs"
+    -- state ($046C == 0x04); the Floor-change is kept as a fallback for
+    -- between-screen stair transitions. The lives guard blocks a death-
+    -- teleport from registering as a win.
     win = function()
         if read_u8(LIVES) < lives_at_start then return false end
-        return read_u8(FLOOR) > floor_at_start
+        if read_u8(SIMON_STATE) == STATE_CLIMB then return true end
+        return read_u8(FLOOR) ~= floor_at_start
     end,
 
     -- Death ends the run. Lives decrement is the universal CV death signal.
@@ -137,6 +146,10 @@ challenge.run{
     -- Minimal HUD: just the hit count, plain font, no background box.
     hud = function(state)
         gui.text(10, 10, "Hits: " .. tostring(hits))
+        -- TEMP DEBUG (remove once the stair-win is confirmed): live Simon
+        -- state + floor, so if the win still doesn't fire we can read the
+        -- value Simon shows while on the stairs instead of guessing again.
+        gui.text(10, 22, "st:" .. tostring(read_u8(SIMON_STATE)) .. " fl:" .. tostring(read_u8(FLOOR)))
     end,
 
     -- score IS the ranking axis for FlawlessNES (higher = fewer hits). The
