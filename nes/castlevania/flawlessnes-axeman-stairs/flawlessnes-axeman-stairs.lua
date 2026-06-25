@@ -1,11 +1,9 @@
 -- FlawlessNES — Castlevania Axe Knight Stairs, No Damage
 -- ======================================================
 -- Survive the axe-throwing knight and take the stairs out — without taking a
--- hit. Going "up the stairs" here is a SCENE TRANSITION: the screen fades to
--- black and loads the next stage. So the win is the on-screen STAGE counter
--- ($0029 — verified; $0028 is an internal id that doesn't match the HUD)
--- changing from its captured start value. Guarded by "lives unchanged" so a
--- death-respawn (which can also reload a scene) can't register as a win.
+-- hit. Going "up the stairs" here loads a new room (the screen fades and a
+-- new scene loads), so the win is a ROOM CHANGE: Castlevania's frame counter
+-- ($001A) resets to 01 whenever the room changes. We latch that reset.
 --
 -- FlawlessNES rules: you don't FAIL on a hit; every hit chips your score per
 -- the fixed table (identical for every FlawlessNES challenge):
@@ -38,8 +36,9 @@ local write_u8 = memory.write_u8 or memory.writebyte
 local USER_PAUSED  = 0x0022   -- write 1 to freeze CV's own state machine
 local LIVES        = 0x002A   -- decremented on every death cause (enemy/pit/timer)
 local HEALTH_REAL  = 0x0045   -- Simon real health (0x40 = full); display copy is $0044
-local STAGE        = 0x0029   -- On-screen STAGE counter (the value the HUD shows).
-local TARGET_STAGE = 15       -- Win when the on-screen STAGE reaches this.
+local FRAME_CTR    = 0x001A   -- Frame counter; RESETS to 0x01 when changing rooms
+local TRANS_TIMER  = 0x001D   -- Transition timer (autowalk / death anim / room load)
+local STAGE        = 0x0029   -- On-screen STAGE counter (shown in debug only)
 
 -- ---------------------------------------------------------------------------
 -- FlawlessNES scoring (the fixed table, computed not hard-coded so the
@@ -75,13 +74,12 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Per-attempt state — ALL reset in setup() so a retry starts clean.
--- stage_at_start / lives_at_start are snapshotted once (the win guards);
--- prev_lives is updated each frame by the fail predicate.
 -- ---------------------------------------------------------------------------
 local prev_lives     = 0
 local lives_at_start = 0
-local stage_at_start = 0
 local prev_health    = 0
+local prev_frame_ctr = 0
+local room_changed   = false
 local hits           = 0
 
 -- ---------------------------------------------------------------------------
@@ -100,27 +98,34 @@ challenge.run{
         emu.frameadvance()
         prev_lives     = read_u8(LIVES)
         lives_at_start = prev_lives        -- snapshot, never updated this attempt
-        stage_at_start = read_u8(STAGE)
         prev_health    = read_u8(HEALTH_REAL)
+        prev_frame_ctr = read_u8(FRAME_CTR)
+        room_changed   = false
         hits           = 0
     end,
 
-    -- Count hits once per frame, before win/fail. A drop in real health is
-    -- a hit; Castlevania's hidden meat heals (health UP), which we ignore.
+    -- Each frame: count hits, and latch a room change (frame counter resets
+    -- to 1 from a higher value — that's the stairs loading the next room;
+    -- requiring prev > 1 rules out the natural 255->0->1 wrap).
     on_frame = function(state)
         local hp = read_u8(HEALTH_REAL)
         if hp < prev_health then
             hits = hits + 1
         end
         prev_health = hp
+
+        local fc = read_u8(FRAME_CTR)
+        if fc == 1 and prev_frame_ctr > 1 then
+            room_changed = true
+        end
+        prev_frame_ctr = fc
     end,
 
-    -- Win = reached the target stage (15) AND still alive. Absolute target
-    -- (simpler than a relative advance). The lives guard blocks a death-
-    -- reload from registering as a win.
+    -- Win = a room change happened (took the stairs out) AND still alive.
+    -- The lives guard blocks a death-reload from registering as a win.
     win = function()
         if read_u8(LIVES) < lives_at_start then return false end
-        return read_u8(STAGE) >= TARGET_STAGE
+        return room_changed
     end,
 
     -- Death ends the run. Lives decrement is the universal CV death signal.
@@ -131,12 +136,13 @@ challenge.run{
         return false
     end,
 
-    -- Minimal HUD: hit count + a temporary STAGE readout (s:) so we can
-    -- confirm the stage byte advances on the stair transition. Remove the
-    -- s: line once verified.
+    -- Minimal HUD: hit count + a temporary transition readout so we can
+    -- confirm which byte moves on the stairs. Remove the second line once
+    -- verified. 1a=frame ctr, 1d=transition timer, s=stage.
     hud = function(state)
         gui.text(10, 10, "Hits: " .. tostring(hits))
-        gui.text(10, 22, "s:" .. tostring(read_u8(STAGE)))
+        gui.text(10, 22, string.format("1a:%d 1d:%d s:%d",
+            read_u8(FRAME_CTR), read_u8(TRANS_TIMER), read_u8(STAGE)))
     end,
 
     -- score IS the ranking axis for FlawlessNES (higher = fewer hits). The
